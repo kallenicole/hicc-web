@@ -1,3 +1,10 @@
+## Live demo
+**▶ https://hicc-web-kalle-georgievs-projects.vercel.app/**
+
+**API docs:** https://hicc-api-srf7acimsa-uc.a.run.app/docs
+
+> Type a NYC restaurant name, click a result, and view the Risk Summary (last inspection date, last points, last grade, probability of B/C, predicted points, and likely next violations).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
 ## Getting Started
