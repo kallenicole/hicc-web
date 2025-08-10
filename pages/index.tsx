@@ -17,6 +17,14 @@ type ScoreResp = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  try { return JSON.stringify(err); } catch { return String(err); }
+}
+function isAbortError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError";
+}
+
 export default function Home() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -28,24 +36,33 @@ export default function Home() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
 
-  const timer = useRef<any>(null);
+  // Typed refs (no "any")
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!API_BASE) return;
+
     if (q.trim().length < 2) {
       setHits([]);
       setSearchErr(null);
       return;
     }
-    if (timer.current) clearTimeout(timer.current);
+
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+
     timer.current = setTimeout(async () => {
       setSearchLoading(true);
       setSearchErr(null);
       setScore(null);
       setSelected(null);
+
       if (abortRef.current) abortRef.current.abort();
       abortRef.current = new AbortController();
+
       try {
         const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(q)}`, {
           signal: abortRef.current.signal,
@@ -53,13 +70,19 @@ export default function Home() {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
         const data = (await r.json()) as Hit[];
         setHits(data);
-      } catch (e: any) {
-        if (e.name !== "AbortError") setSearchErr(e.message || "Search failed");
+      } catch (err: unknown) {
+        if (!isAbortError(err)) setSearchErr(getErrorMessage(err));
       } finally {
         setSearchLoading(false);
       }
     }, 350);
-    return () => { if (timer.current) clearTimeout(timer.current); };
+
+    return () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+    };
   }, [q]);
 
   const runScore = async (camis: string) => {
@@ -72,11 +95,14 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ camis }),
       });
-      if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(`${r.status}: ${t}`);
+      }
       const data = (await r.json()) as ScoreResp;
       setScore(data);
-    } catch (e: any) {
-      setScoreErr(e.message || "Scoring failed");
+    } catch (err: unknown) {
+      setScoreErr(getErrorMessage(err));
     } finally {
       setScoreLoading(false);
     }
@@ -121,6 +147,7 @@ export default function Home() {
                   cursor: "pointer",
                 }}
               >
+                {/* Restaurant name explicitly black inside the white card */}
                 <div style={{ fontWeight: 600, color: "#000" }}>{h.name}</div>
                 <div style={{ fontSize: 13, color: "#555" }}>
                   {h.boro} • {h.address}
@@ -170,3 +197,4 @@ export default function Home() {
     </main>
   );
 }
+
