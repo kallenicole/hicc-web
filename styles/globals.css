@@ -40,3 +40,7 @@ a {
     color-scheme: dark;
   }
 }
+/* Force light mode + readable defaults */
+:root { color-scheme: light; }
+html, body, #__next { background: #fff !important; color: #111 !important; }
+button, input, select, textarea { color: #111; }
