@@ -27,11 +27,7 @@ function softNormalize(s: string) {
 }
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return String(err);
-  }
+  try { return JSON.stringify(err); } catch { return String(err); }
 }
 function isAbortError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError";
@@ -55,11 +51,7 @@ function Spinner({ label }: { label?: string }) {
       />
       {label ? <span>{label}</span> : null}
       <style jsx>{`
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </span>
   );
@@ -82,9 +74,7 @@ async function copyText(text: string): Promise<boolean> {
     const ok = document.execCommand("copy");
     document.body.removeChild(ta);
     return ok;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export default function Home() {
@@ -92,7 +82,7 @@ export default function Home() {
 
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
-  const [highlighted, setHighlighted] = useState<number>(-1); // keyboard focus index
+  const [highlighted, setHighlighted] = useState<number>(-1);
 
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchErr, setSearchErr] = useState<string | null>(null);
@@ -103,7 +93,8 @@ export default function Home() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
 
-  const [copiedState, setCopiedState] = useState<"idle" | "ok" | "err">("idle");
+  const [copiedLink, setCopiedLink] = useState<"idle" | "ok" | "err">("idle");
+  const [copiedCamis, setCopiedCamis] = useState<"idle" | "ok" | "err">("idle");
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -117,8 +108,14 @@ export default function Home() {
   async function handleShare() {
     if (!deepLink) return;
     const ok = await copyText(deepLink);
-    setCopiedState(ok ? "ok" : "err");
-    setTimeout(() => setCopiedState("idle"), 1800);
+    setCopiedLink(ok ? "ok" : "err");
+    setTimeout(() => setCopiedLink("idle"), 1800);
+  }
+  async function handleCopyCamis() {
+    if (!selected) return;
+    const ok = await copyText(selected.camis);
+    setCopiedCamis(ok ? "ok" : "err");
+    setTimeout(() => setCopiedCamis("idle"), 1800);
   }
 
   async function runSearch(term: string, { allowFallback }: { allowFallback: boolean }) {
@@ -130,18 +127,14 @@ export default function Home() {
     abortRef.current = new AbortController();
 
     try {
-      const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(term)}`, {
-        signal: abortRef.current.signal,
-      });
+      const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(term)}`, { signal: abortRef.current.signal });
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       const data = (await r.json()) as Hit[];
 
       if (data.length === 0 && allowFallback) {
         const soft = softNormalize(term);
         if (soft && soft !== term) {
-          const r2 = await fetch(`${API_BASE}/search?name=${encodeURIComponent(soft)}`, {
-            signal: abortRef.current.signal,
-          });
+          const r2 = await fetch(`${API_BASE}/search?name=${encodeURIComponent(soft)}`, { signal: abortRef.current.signal });
           if (r2.ok) {
             const data2 = (await r2.json()) as Hit[];
             if (data2.length > 0) {
@@ -167,17 +160,12 @@ export default function Home() {
   useEffect(() => {
     if (!API_BASE) return;
     if (q.trim().length < 2) {
-      setHits([]);
-      setSearchErr(null);
-      setSuggestion(null);
-      setHighlighted(-1);
+      setHits([]); setSearchErr(null); setSuggestion(null); setHighlighted(-1);
       return;
     }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
+    return () => { if (timer.current) clearTimeout(timer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
@@ -193,32 +181,23 @@ export default function Home() {
   }, [router.isReady]);
 
   const runScore = async (camis: string) => {
-    setScoreLoading(true);
-    setScoreErr(null);
-    setScore(null);
+    setScoreLoading(true); setScoreErr(null); setScore(null);
     try {
       const r = await fetch(`${API_BASE}/score`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ camis }),
       });
-      if (!r.ok) {
-        const t = await r.text();
-        throw new Error(`${r.status}: ${t}`);
-      }
+      if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
       const data = (await r.json()) as ScoreResp;
       setScore(data);
     } catch (err: unknown) {
       setScoreErr(getErrorMessage(err));
-    } finally {
-      setScoreLoading(false);
-    }
+    } finally { setScoreLoading(false); }
   };
 
   const selectHit = (h: Hit) => {
-    setSelected(h);
-    setScore(null);
-    setScoreErr(null);
+    setSelected(h); setScore(null); setScoreErr(null);
     runScore(h.camis);
     const q = { ...router.query, camis: h.camis };
     router.replace({ pathname: router.pathname, query: q }, undefined, { shallow: true });
@@ -227,14 +206,9 @@ export default function Home() {
   // Keyboard navigation on input
   const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (!hits.length) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlighted((i) => (i + 1) % hits.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlighted((i) => (i - 1 + hits.length) % hits.length);
-    } else if (e.key === "Enter") {
+    if (e.key === "ArrowDown") { e.preventDefault(); setHighlighted((i) => (i + 1) % hits.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlighted((i) => (i - 1 + hits.length) % hits.length); }
+    else if (e.key === "Enter") {
       e.preventDefault();
       const index = highlighted >= 0 ? highlighted : 0;
       const h = hits[index];
@@ -247,7 +221,9 @@ export default function Home() {
   return (
     <main style={{ maxWidth: 820, margin: "2rem auto", padding: "0 1rem", fontFamily: "ui-sans-serif, system-ui" }}>
       <h1 style={{ fontSize: "1.8rem", marginBottom: 8 }}>DineSafe NYC — Compliance Coach</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>Type a NYC restaurant name to search, use ↑/↓ then Enter to score, or paste a deep link with <code>?camis=</code>.</p>
+      <p style={{ color: "#555", marginTop: 0 }}>
+        Type a NYC restaurant name to search, use ↑/↓ then Enter to score, or share a deep link with <code>?camis=</code>.
+      </p>
 
       {!API_BASE && (
         <p style={{ background: "#fff3cd", padding: 12, borderRadius: 8, border: "1px solid #ffe58f" }}>
@@ -325,9 +301,9 @@ export default function Home() {
 
       {selected && (
         <div style={{ marginTop: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
-            <h2 style={{ marginBottom: 8, marginTop: 0 }}>{selected.name} Risk Summary</h2>
-            <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0 }}>{selected.name} Risk Summary</h2>
+            <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <button
                 onClick={handleShare}
                 title="Copy a shareable link to this restaurant"
@@ -336,12 +312,31 @@ export default function Home() {
               >
                 Share
               </button>
-              {copiedState === "ok" && <span style={{ fontSize: 12, color: "green" }}>Copied!</span>}
-              {copiedState === "err" && <span style={{ fontSize: 12, color: "crimson" }}>Copy failed</span>}
+              <a
+                href={deepLink || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", textDecoration: "none" }}
+                aria-label="Open deep link in new tab"
+              >
+                Open in new tab
+              </a>
+              <button
+                onClick={handleCopyCamis}
+                title="Copy CAMIS"
+                style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                aria-label="Copy CAMIS"
+              >
+                Copy CAMIS
+              </button>
+              {copiedLink === "ok" && <span style={{ fontSize: 12, color: "green" }}>Link copied!</span>}
+              {copiedLink === "err" && <span style={{ fontSize: 12, color: "crimson" }}>Copy failed</span>}
+              {copiedCamis === "ok" && <span style={{ fontSize: 12, color: "green" }}>CAMIS copied!</span>}
+              {copiedCamis === "err" && <span style={{ fontSize: 12, color: "crimson" }}>Copy failed</span>}
             </div>
           </div>
 
-          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 16 }}>
+          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 16, marginTop: 8 }}>
             {scoreLoading && <Spinner label="Scoring…" />}
             {scoreErr && <div style={{ color: "crimson" }}>Error: {scoreErr}</div>}
             {score && (
@@ -387,6 +382,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-
