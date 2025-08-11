@@ -27,11 +27,7 @@ function softNormalize(s: string) {
 }
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return String(err);
-  }
+  try { return JSON.stringify(err); } catch { return String(err); }
 }
 function isAbortError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError";
@@ -55,11 +51,7 @@ function Spinner({ label }: { label?: string }) {
       />
       {label ? <span>{label}</span> : null}
       <style jsx>{`
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </span>
   );
@@ -71,9 +63,7 @@ async function copyText(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch {
-    /* noop */
-  }
+  } catch {}
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -84,9 +74,7 @@ async function copyText(text: string): Promise<boolean> {
     const ok = document.execCommand("copy");
     document.body.removeChild(ta);
     return ok;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export default function Home() {
@@ -112,8 +100,12 @@ export default function Home() {
     setTimeout(() => setToast(null), 1800);
   };
 
+  // Refs for UX
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const resultsListRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const deepLink = useMemo(() => {
     if (!selected) return "";
@@ -132,13 +124,38 @@ export default function Home() {
     showToast(ok ? "CAMIS copied!" : "Copy failed");
   }
   async function handleCopyJson() {
-    if (!score) {
-      showToast("No score yet");
-      return;
-    }
-    const pretty = JSON.stringify(score, null, 2);
-    const ok = await copyText(pretty);
+    if (!score) { showToast("No score yet"); return; }
+    const ok = await copyText(JSON.stringify(score, null, 2));
     showToast(ok ? "JSON copied!" : "Copy failed");
+  }
+
+  function scrollSelectedIntoView(camis: string) {
+    const el = itemRefs.current[camis];
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function handleBackToResults() {
+    if (selected) {
+      // Highlight the selected item (if still in the list) and scroll to it
+      const idx = hits.findIndex(h => h.camis === selected.camis);
+      if (idx >= 0) setHighlighted(idx);
+      scrollSelectedIntoView(selected.camis);
+    }
+    inputRef.current?.focus();
+  }
+
+  function handleStartOver() {
+    setQ("");
+    setHits([]);
+    setSelected(null);
+    setScore(null);
+    setScoreErr(null);
+    setHighlighted(-1);
+    // Remove ?camis= from URL (shallow)
+    const { camis, ...rest } = router.query;
+    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    inputRef.current?.focus();
+    showToast("Cleared");
   }
 
   async function runSearch(term: string, { allowFallback }: { allowFallback: boolean }) {
@@ -150,18 +167,14 @@ export default function Home() {
     abortRef.current = new AbortController();
 
     try {
-      const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(term)}`, {
-        signal: abortRef.current.signal,
-      });
+      const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(term)}`, { signal: abortRef.current.signal });
       if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
       const data = (await r.json()) as Hit[];
 
       if (data.length === 0 && allowFallback) {
         const soft = softNormalize(term);
         if (soft && soft !== term) {
-          const r2 = await fetch(`${API_BASE}/search?name=${encodeURIComponent(soft)}`, {
-            signal: abortRef.current.signal,
-          });
+          const r2 = await fetch(`${API_BASE}/search?name=${encodeURIComponent(soft)}`, { signal: abortRef.current.signal });
           if (r2.ok) {
             const data2 = (await r2.json()) as Hit[];
             if (data2.length > 0) {
@@ -187,17 +200,12 @@ export default function Home() {
   useEffect(() => {
     if (!API_BASE) return;
     if (q.trim().length < 2) {
-      setHits([]);
-      setSearchErr(null);
-      setSuggestion(null);
-      setHighlighted(-1);
+      setHits([]); setSearchErr(null); setSuggestion(null); setHighlighted(-1);
       return;
     }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
+    return () => { if (timer.current) clearTimeout(timer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
@@ -213,39 +221,48 @@ export default function Home() {
   }, [router.isReady]);
 
   const runScore = async (camis: string) => {
-    setScoreLoading(true);
-    setScoreErr(null);
-    setScore(null);
+    setScoreLoading(true); setScoreErr(null); setScore(null);
     try {
       const r = await fetch(`${API_BASE}/score`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ camis }),
       });
-      if (!r.ok) {
-        const t = await r.text();
-        throw new Error(`${r.status}: ${t}`);
-      }
+      if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
       const data = (await r.json()) as ScoreResp;
       setScore(data);
+
+      // Keep the selected item highlighted (if present) and in view
+      const idx = hits.findIndex(h => h.camis === camis);
+      if (idx >= 0) {
+        setHighlighted(idx);
+        scrollSelectedIntoView(camis);
+      }
     } catch (err: unknown) {
       setScoreErr(getErrorMessage(err));
-    } finally {
-      setScoreLoading(false);
-    }
+    } finally { setScoreLoading(false); }
   };
 
   const selectHit = (h: Hit) => {
-    setSelected(h);
-    setScore(null);
-    setScoreErr(null);
+    setSelected(h); setScore(null); setScoreErr(null);
     runScore(h.camis);
+    // Update URL with ?camis=... (shallow)
     const q = { ...router.query, camis: h.camis };
     router.replace({ pathname: router.pathname, query: q }, undefined, { shallow: true });
+
+    // Highlight and scroll into view immediately
+    const idx = hits.findIndex(x => x.camis === h.camis);
+    if (idx >= 0) setHighlighted(idx);
+    scrollSelectedIntoView(h.camis);
   };
 
   // Keyboard navigation on input
   const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === "Escape") {
+      // Quick reset
+      handleStartOver();
+      return;
+    }
     if (!hits.length) return;
 
     if (e.key === "ArrowDown") {
@@ -278,14 +295,24 @@ export default function Home() {
       )}
 
       <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <input
-          placeholder="e.g. pizza, sushi, coffee"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={onInputKeyDown}
-          style={{ padding: "0.65rem 0.8rem", border: "1px solid #ccc", borderRadius: 10 }}
-          aria-label="Search restaurants"
-        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            ref={inputRef}
+            placeholder="e.g. pizza, sushi, coffee"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={onInputKeyDown}
+            style={{ flex: 1, padding: "0.65rem 0.8rem", border: "1px solid #ccc", borderRadius: 10 }}
+            aria-label="Search restaurants"
+          />
+          <button
+            onClick={handleStartOver}
+            title="Clear selection and search"
+            style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+          >
+            Start over
+          </button>
+        </div>
 
         {searchLoading && <Spinner label="Searching…" />}
         {searchErr && <div style={{ color: "crimson" }}>Error: {searchErr}</div>}
@@ -311,12 +338,13 @@ export default function Home() {
         {hits.length > 0 && (
           <div>
             <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Showing {hits.length} restaurant(s)</div>
-            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 8, maxHeight: 360, overflowY: "auto" }}>
+            <div ref={resultsListRef} style={{ border: "1px solid #eee", borderRadius: 12, padding: 8, maxHeight: 360, overflowY: "auto" }}>
               {hits.map((h, i) => {
                 const active = i === highlighted;
                 return (
                   <button
                     key={h.camis}
+                    ref={(el) => { itemRefs.current[h.camis] = el; }}
                     onClick={() => selectHit(h)}
                     style={{
                       display: "block",
@@ -350,6 +378,13 @@ export default function Home() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
             <h2 style={{ margin: 0 }}>{selected.name} Risk Summary</h2>
             <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={handleBackToResults}
+                title="Scroll back to the selected item in results"
+                style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+              >
+                Back to results
+              </button>
               <button
                 onClick={handleShare}
                 title="Copy a shareable link to this restaurant"
@@ -454,4 +489,5 @@ export default function Home() {
     </main>
   );
 }
+
 
