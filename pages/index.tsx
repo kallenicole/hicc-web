@@ -17,6 +17,13 @@ type ScoreResp = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
+// collapse 3+ repeats to 2 (cooofffeee -> cooffee) and strip punctuation
+function softNormalize(s: string) {
+  return s
+    .replace(/[^a-z0-9\s]/gi, "")
+    .replace(/(.)\1{2,}/gi, "$1$1")
+    .trim();
+}
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   try { return JSON.stringify(err); } catch { return String(err); }
@@ -30,59 +37,73 @@ export default function Home() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchErr, setSearchErr] = useState<string | null>(null);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [attemptedFallback, setAttemptedFallback] = useState(false);
 
   const [selected, setSelected] = useState<Hit | null>(null);
   const [score, setScore] = useState<ScoreResp | null>(null);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
 
-  // Typed refs (no "any")
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  async function runSearch(term: string, { allowFallback }: { allowFallback: boolean }) {
+    setSearchLoading(true);
+    setSearchErr(null);
+    setScore(null);
+    setSelected(null);
+    setSuggestion(null);
+
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(term)}`, {
+        signal: abortRef.current.signal,
+      });
+      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+      const data = (await r.json()) as Hit[];
+
+      if (data.length === 0 && allowFallback) {
+        // try a softer query once
+        const soft = softNormalize(term);
+        if (soft && soft !== term) {
+          setAttemptedFallback(true);
+          const r2 = await fetch(`${API_BASE}/search?name=${encodeURIComponent(soft)}`, {
+            signal: abortRef.current.signal,
+          });
+          if (r2.ok) {
+            const data2 = (await r2.json()) as Hit[];
+            if (data2.length > 0) {
+              setSuggestion(soft);
+              setHits(data2);
+              return;
+            }
+          }
+        }
+      }
+
+      setHits(data);
+    } catch (err: unknown) {
+      if (!isAbortError(err)) setSearchErr(getErrorMessage(err));
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!API_BASE) return;
-
     if (q.trim().length < 2) {
       setHits([]);
       setSearchErr(null);
+      setSuggestion(null);
+      setAttemptedFallback(false);
       return;
     }
-
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-
-    timer.current = setTimeout(async () => {
-      setSearchLoading(true);
-      setSearchErr(null);
-      setScore(null);
-      setSelected(null);
-
-      if (abortRef.current) abortRef.current.abort();
-      abortRef.current = new AbortController();
-
-      try {
-        const r = await fetch(`${API_BASE}/search?name=${encodeURIComponent(q)}`, {
-          signal: abortRef.current.signal,
-        });
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        const data = (await r.json()) as Hit[];
-        setHits(data);
-      } catch (err: unknown) {
-        if (!isAbortError(err)) setSearchErr(getErrorMessage(err));
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        timer.current = null;
-      }
-    };
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
+    return () => { if (timer.current) clearTimeout(timer.current); };
   }, [q]);
 
   const runScore = async (camis: string) => {
@@ -95,10 +116,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ camis }),
       });
-      if (!r.ok) {
-        const t = await r.text();
-        throw new Error(`${r.status}: ${t}`);
-      }
+      if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
       const data = (await r.json()) as ScoreResp;
       setScore(data);
     } catch (err: unknown) {
@@ -107,6 +125,8 @@ export default function Home() {
       setScoreLoading(false);
     }
   };
+
+  const noResults = !searchLoading && !searchErr && q.trim().length >= 2 && hits.length === 0;
 
   return (
     <main style={{ maxWidth: 820, margin: "2rem auto", padding: "0 1rem", fontFamily: "ui-sans-serif, system-ui" }}>
@@ -126,42 +146,62 @@ export default function Home() {
           onChange={(e) => setQ(e.target.value)}
           style={{ padding: "0.65rem 0.8rem", border: "1px solid #ccc", borderRadius: 10 }}
         />
-        {searchLoading && <div>Searching…</div>}
+        {searchLoading && <div aria-live="polite">Searching…</div>}
         {searchErr && <div style={{ color: "crimson" }}>Error: {searchErr}</div>}
 
+        {suggestion && (
+          <div style={{ marginTop: -6 }}>
+            <button
+              onClick={() => setQ(suggestion)}
+              style={{ background: "#f5f5f5", border: "1px solid #e6e6e6", borderRadius: 999, padding: "4px 10px", cursor: "pointer" }}
+              aria-label={`Use suggestion ${suggestion}`}
+            >
+              Did you mean “{suggestion}”?
+            </button>
+          </div>
+        )}
+
+        {noResults && (
+          <div style={{ color: "#666" }}>
+            No results for “{q}”. Try fewer words, remove extra letters, or search part of the name.
+          </div>
+        )}
+
         {hits.length > 0 && (
-          <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 8 }}>
-            {hits.map((h) => (
-              <button
-                key={h.camis}
-                onClick={() => { setSelected(h); runScore(h.camis); }}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 12px",
-                  border: "1px solid #eee",
-                  borderRadius: 10,
-                  margin: "6px 0",
-                  background: "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                {/* Restaurant name explicitly black inside the white card */}
-                <div style={{ fontWeight: 600, color: "#000" }}>{h.name}</div>
-                <div style={{ fontSize: 13, color: "#555" }}>
-                  {h.boro} • {h.address}
-                </div>
-                <div style={{ fontSize: 12, color: "#888" }}>CAMIS: {h.camis}</div>
-              </button>
-            ))}
+          <div>
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Showing {hits.length} restaurant(s)</div>
+            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 8, maxHeight: 360, overflowY: "auto" }}>
+              {hits.map((h) => (
+                <button
+                  key={h.camis}
+                  onClick={() => { setSelected(h); runScore(h.camis); }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    border: "1px solid #eee",
+                    borderRadius: 10,
+                    margin: "6px 0",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, color: "#000" }}>{h.name}</div>
+                  <div style={{ fontSize: 13, color: "#555" }}>
+                    {h.boro} • {h.address}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#888" }}>CAMIS: {h.camis}</div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
       {selected && (
         <div style={{ marginTop: 24 }}>
-          <h2 style={{ marginBottom: 8 }}>{selected.name} Risk Summary</h2>
+          <h2 style={{ marginBottom: 8, position: "sticky", top: 0, background: "#fff" }}>{selected.name} Risk Summary</h2>
           <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 16 }}>
             {scoreLoading && <div>Scoring…</div>}
             {scoreErr && <div style={{ color: "crimson" }}>Error: {scoreErr}</div>}
@@ -174,7 +214,18 @@ export default function Home() {
 
                 <p style={{ marginTop: 16, fontWeight: 600 }}>
                   Probability of B or C: {(score.prob_bc * 100).toFixed(1)}% &nbsp;|&nbsp;
-                  Next Inspection Predicted Points: {score.predicted_points ?? "—"}
+                  {(() => {
+                    const sameAsLast =
+                      score.predicted_points != null &&
+                      score.last_points != null &&
+                      Math.round(score.predicted_points) === Math.round(score.last_points);
+                    return (
+                      <>
+                        Next Inspection Predicted Points:{" "}
+                        {sameAsLast ? "≈ last (baseline)" : score.predicted_points ?? "—"}
+                      </>
+                    );
+                  })()}
                 </p>
 
                 {score.top_violation_probs && score.top_violation_probs.length > 0 && (
@@ -197,4 +248,5 @@ export default function Home() {
     </main>
   );
 }
+
 
