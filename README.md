@@ -1,35 +1,65 @@
+# Minimal UI to search NYC restaurants and see inspection risk.
 ## Live demo
 **▶ https://hicc-web-kalle-georgievs-projects.vercel.app/**
 
 **API docs:** https://hicc-api-srf7acimsa-uc.a.run.app/docs
+API base: https://hicc-api-srf7acimsa-uc.a.run.app
 
 > Type a NYC restaurant name, click a result, and view the Risk Summary (last inspection date, last points, last grade, probability of B/C, predicted points, and likely next violations).
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
-## Getting Started
+# Local development
+# Node 20+
+```node -v   # should be v20.x```
 
-First, run the development server:
+# Set API base for the UI
+```echo 'NEXT_PUBLIC_API_BASE=https://hicc-api-srf7acimsa-uc.a.run.app' > .env.local```
 
-```bash
+```npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Open: http://localhost:3000
+# Try:  http://localhost:3000/?camis=50117047
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# Features
+- Fast search with typo softening (e.g., “cooffee” → “coffee”)
+- Keyboard nav: ↑/↓ to move selection, Enter to score
+- Deep links: ?camis=50117047 opens a specific restaurant
+- Share / Copy: deep link, CAMIS, or raw JSON
+- Scrollable results with highlight + “Back to results”
+- Local Rat Pressure badge with tooltip explaining the metric
+- Clear loading and empty states
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Deploy (Vercel)
+In Vercel, Add New Project → import kallenicole/hicc-web.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+Add Environment Variable:
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```NEXT_PUBLIC_API_BASE = https://hicc-api-srf7acimsa-uc.a.run.app```
+
+Deploy. You’ll get a URL like the live site above.
+
+Optional custom domain:
+Create a CNAME record per Vercel’s instructions (e.g., ```dinesafe.kallenicole.com``` → ```*.vercel-dns-*.com```) and attach it in the Vercel project.
+
+# How to use
+Type part of a restaurant’s name (e.g., “pizza”, “coffee”).
+Use ↑/↓ to highlight results, Enter to fetch a score.
+Share a direct link using the Share button (or ?camis= in the URL).
+
+The Prediction card shows:
+Probability of B or C
+“Next Inspection Predicted Points”
+Local Rat Pressure with tooltip (311 rodent complaints in last 180d + DOHMH rat fails in last 365d; combined into rat_index 0–1).
+The Latest Results card shows the last inspection date/points/grade.
+
+# Accessibility
+Keyboard accessible controls
+Tooltips open on hover and focus
+High contrast on light background
+
 
 ## Learn More
 
@@ -43,5 +73,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+License: MIT
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
