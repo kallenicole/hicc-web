@@ -9,11 +9,11 @@ API base: https://hicc-api-srf7acimsa-uc.a.run.app
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
-# Local development
-# Node 20+
+## Local development
+### Node 20+
 ```node -v   # should be v20.x```
 
-# Set API base for the UI
+### Set API base for the UI
 ```echo 'NEXT_PUBLIC_API_BASE=https://hicc-api-srf7acimsa-uc.a.run.app' > .env.local```
 
 ```npm install
@@ -22,7 +22,7 @@ npm run dev
 # Try:  http://localhost:3000/?camis=50117047
 ```
 
-# Features
+### Features
 - Fast search with typo softening (e.g., “cooffee” → “coffee”)
 - Keyboard nav: ↑/↓ to move selection, Enter to score
 - Deep links: ?camis=50117047 opens a specific restaurant
@@ -33,32 +33,33 @@ npm run dev
 
 
 Deploy (Vercel)
+
 In Vercel, Add New Project → import kallenicole/hicc-web.
 
 Add Environment Variable:
-
 ```NEXT_PUBLIC_API_BASE = https://hicc-api-srf7acimsa-uc.a.run.app```
 
-Deploy. You’ll get a URL like the live site above.
+Deploy. 
+You’ll get a URL like the live site above.
 
 Optional custom domain:
 Create a CNAME record per Vercel’s instructions (e.g., ```dinesafe.kallenicole.com``` → ```*.vercel-dns-*.com```) and attach it in the Vercel project.
 
-# How to use
-Type part of a restaurant’s name (e.g., “pizza”, “coffee”).
-Use ↑/↓ to highlight results, Enter to fetch a score.
-Share a direct link using the Share button (or ?camis= in the URL).
+## How to use
+- Type part of a restaurant’s name (e.g., “pizza”, “coffee”).
+- Use ↑/↓ to highlight results, Enter to fetch a score.
+- Share a direct link using the Share button (or ?camis= in the URL).
 
-The Prediction card shows:
-Probability of B or C
-“Next Inspection Predicted Points”
-Local Rat Pressure with tooltip (311 rodent complaints in last 180d + DOHMH rat fails in last 365d; combined into rat_index 0–1).
-The Latest Results card shows the last inspection date/points/grade.
+### The Prediction card shows:
+- Probability of B or C
+- “Next Inspection Predicted Points”
+- Local Rat Pressure with tooltip (311 rodent complaints in last 180d + DOHMH rat fails in last 365d; combined into rat_index 0–1).
+- The Latest Results card shows the last inspection date/points/grade.
 
-# Accessibility
-Keyboard accessible controls
-Tooltips open on hover and focus
-High contrast on light background
+## Accessibility
+- Keyboard accessible controls
+- Tooltips open on hover and focus
+- High contrast on light background
 
 
 ## Learn More
