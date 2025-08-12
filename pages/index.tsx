@@ -68,6 +68,57 @@ function Spinner({ label }: { label?: string }) {
   );
 }
 
+function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden {...props}>
+      <circle cx="12" cy="12" r="10" fill="none" stroke="#64748b" strokeWidth="2" />
+      <line x1="12" y1="10" x2="12" y2="17" stroke="#64748b" strokeWidth="2" />
+      <circle cx="12" cy="7" r="1" fill="#64748b" />
+    </svg>
+  );
+}
+
+function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+    >
+      {children}
+      <span
+        role="tooltip"
+        style={{
+          position: "absolute",
+          bottom: "125%",
+          left: 0,
+          transform: "translateY(-4px)",
+          background: "#fff",
+          border: "1px solid #e5e7eb",
+          borderRadius: 8,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
+          padding: "8px 10px",
+          fontSize: 12,
+          color: "#111",
+          whiteSpace: "pre-wrap",
+          maxWidth: 320,
+          lineHeight: 1.35,
+          zIndex: 60,
+          opacity: open ? 1 : 0,
+          pointerEvents: "none",
+          transition: "opacity 120ms ease",
+        }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
+
 async function copyText(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -188,6 +239,11 @@ export default function Home() {
     inputRef.current?.focus();
     showToast("Cleared");
   }
+
+  function dedent(s: string) {
+  return s.replace(/^[ \t]+/gm, "").trim();
+}
+
 
   async function runSearch(term: string, { allowFallback }: { allowFallback: boolean }) {
     setSearchLoading(true); setSearchErr(null); setSuggestion(null);
@@ -497,18 +553,31 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Rat pressure badge */}
+                  {/* Rat pressure with tooltip */}
                   <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <span
-                      title="Recent 311 rodent complaints + DOHMH rat inspection fails near this location"
-                      style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", color: "#334155" }}
+                    <Tooltip
+                      label={dedent(`
+                      Local Rat Pressure combines two signals near the restaurant (≈150–200m cell):
+                      • 311 rodent complaints in the last 180 days
+                      • DOHMH rat inspection failures in the last 365 days
+                      We normalize these into an index from 0–1 using robust quantiles.
+                      Scale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8
+                      `)}
                     >
-                      Local Rat Pressure: <b>{ratPressureLabel(score.rat_index)}</b>
-                    </span>
+                      <span
+                        title="Recent 311 rodent complaints + DOHMH rat inspection fails near this location"
+                        style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", color: "#334155", display: "inline-flex", alignItems: "center", gap: 6 }}
+                      >
+                        Local Rat Pressure: <b>{ratPressureLabel(score.rat_index)}</b>
+                        <InfoIcon />
+                      </span>
+                    </Tooltip>
+
                     <span style={{ fontSize: 12, color: "#6b7280" }}>
                       idx {fmt(score.rat_index, 2)} · 311 last 180d: {score.rat311_cnt_180d_k1 ?? "—"} · fails last 365d: {score.ratinsp_fail_365d_k1 ?? "—"}
                     </span>
                   </div>
+
 
                   <p style={{ marginTop: 12, marginBottom: 0, fontWeight: 600 }}>
                     Next Inspection Predicted Points:&nbsp;
