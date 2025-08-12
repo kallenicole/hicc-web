@@ -14,6 +14,10 @@ type ScoreResp = {
   last_inspection_date?: string | null;
   last_points?: number | null;
   last_grade?: string | null;
+  // NEW:
+  rat_index?: number | null;
+  rat311_cnt_180d_k1?: number | null;
+  ratinsp_fail_365d_k1?: number | null; // note: exactly this spelling
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -22,6 +26,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 function softNormalize(s: string) {
   return s.replace(/[^a-z0-9\s]/gi, "").replace(/(.)\1{2,}/gi, "$1$1").trim();
 }
+function ratPressureLabel(x?: number | null): string {
+  if (x == null) return "Unknown";
+  if (x < 0.2) return "Low";
+  if (x < 0.4) return "Moderate";
+  if (x < 0.6) return "Elevated";
+  if (x < 0.8) return "High";
+  return "Very High";
+}
+function fmt(x?: number | null, digits = 2) {
+  return x == null ? "—" : x.toFixed(digits);
+}
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   try { return JSON.stringify(err); } catch { return String(err); }
@@ -479,6 +495,19 @@ export default function Home() {
                         aria-hidden
                       />
                     </div>
+                  </div>
+
+                  {/* Rat pressure badge */}
+                  <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                    <span
+                      title="Recent 311 rodent complaints + DOHMH rat inspection fails near this location"
+                      style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", color: "#334155" }}
+                    >
+                      Local Rat Pressure: <b>{ratPressureLabel(score.rat_index)}</b>
+                    </span>
+                    <span style={{ fontSize: 12, color: "#6b7280" }}>
+                      idx {fmt(score.rat_index, 2)} · 311 last 180d: {score.rat311_cnt_180d_k1 ?? "—"} · fails last 365d: {score.ratinsp_fail_365d_k1 ?? "—"}
+                    </span>
                   </div>
 
                   <p style={{ marginTop: 12, marginBottom: 0, fontWeight: 600 }}>
