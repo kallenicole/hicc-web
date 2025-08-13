@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -14,15 +15,14 @@ type ScoreResp = {
   last_inspection_date?: string | null;
   last_points?: number | null;
   last_grade?: string | null;
-  // NEW:
   rat_index?: number | null;
   rat311_cnt_180d_k1?: number | null;
-  ratinsp_fail_365d_k1?: number | null; // note: exactly this spelling
+  ratinsp_fail_365d_k1?: number | null;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
-// collapse 3+ repeats to 2 (cooofffeee -> cooffee) and strip punctuation
+// ---------- helpers ----------
 function softNormalize(s: string) {
   return s.replace(/[^a-z0-9\s]/gi, "").replace(/(.)\1{2,}/gi, "$1$1").trim();
 }
@@ -37,7 +37,6 @@ function ratPressureLabel(x?: number | null): string {
 function fmt(x?: number | null, digits = 2) {
   return x == null ? "—" : x.toFixed(digits);
 }
-
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   try { return JSON.stringify(err); } catch { return String(err); }
@@ -45,7 +44,11 @@ function getErrorMessage(err: unknown): string {
 function isAbortError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError";
 }
+function dedent(s: string) {
+  return s.replace(/^[ \t]+/gm, "").trim();
+}
 
+// ---------- small UI bits ----------
 function Spinner({ label }: { label?: string }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -53,13 +56,8 @@ function Spinner({ label }: { label?: string }) {
         role="progressbar"
         aria-label={label || "Loading"}
         style={{
-          width: 16,
-          height: 16,
-          border: "2px solid #ddd",
-          borderTopColor: "#555",
-          borderRadius: "50%",
-          display: "inline-block",
-          animation: "spin 0.8s linear infinite",
+          width: 16, height: 16, border: "2px solid #ddd", borderTopColor: "#555",
+          borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite",
         }}
       />
       {label ? <span>{label}</span> : null}
@@ -92,23 +90,11 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
       <span
         role="tooltip"
         style={{
-          position: "absolute",
-          bottom: "125%",
-          left: 0,
-          transform: "translateY(-4px)",
-          background: "#fff",
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
-          padding: "8px 10px",
-          fontSize: 12,
-          color: "#111",
-          whiteSpace: "pre-wrap",
-          maxWidth: 320,
-          lineHeight: 1.35,
-          zIndex: 60,
-          opacity: open ? 1 : 0,
-          pointerEvents: "none",
+          position: "absolute", bottom: "125%", left: 0, transform: "translateY(-4px)",
+          background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.12)", padding: "8px 10px",
+          fontSize: 12, color: "#111", whiteSpace: "pre-wrap", maxWidth: 320,
+          lineHeight: 1.35, zIndex: 60, opacity: open ? 1 : 0, pointerEvents: "none",
           transition: "opacity 120ms ease",
         }}
       >
@@ -117,7 +103,6 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
     </span>
   );
 }
-
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -140,16 +125,14 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 // Visual helpers
-function riskColor(probBC: number): string {
-  const p = probBC; // 0..1
-  if (p < 0.2) return "#16a34a"; // green
-  if (p < 0.4) return "#84cc16"; // lime
-  if (p < 0.6) return "#f59e0b"; // amber
-  if (p < 0.8) return "#f97316"; // orange
-  return "#ef4444"; // red
+function riskColor(p: number): string {
+  if (p < 0.2) return "#16a34a";
+  if (p < 0.4) return "#84cc16";
+  if (p < 0.6) return "#f59e0b";
+  if (p < 0.8) return "#f97316";
+  return "#ef4444";
 }
-function riskLabel(probBC: number): string {
-  const p = probBC;
+function riskLabel(p: number): string {
   if (p < 0.2) return "Low";
   if (p < 0.4) return "Moderate";
   if (p < 0.6) return "Elevated";
@@ -157,6 +140,7 @@ function riskLabel(probBC: number): string {
   return "Very High";
 }
 
+// ---------- page ----------
 export default function Home() {
   const router = useRouter();
 
@@ -190,7 +174,6 @@ export default function Home() {
 
   const actionsDisabled = !score || scoreLoading;
 
-  // Shared button style (keeps font size in sync for <button> and <a>)
   const btnStyle: React.CSSProperties = {
     padding: "6px 10px",
     border: "1px solid #ddd",
@@ -239,11 +222,6 @@ export default function Home() {
     inputRef.current?.focus();
     showToast("Cleared");
   }
-
-  function dedent(s: string) {
-  return s.replace(/^[ \t]+/gm, "").trim();
-}
-
 
   async function runSearch(term: string, { allowFallback }: { allowFallback: boolean }) {
     setSearchLoading(true); setSearchErr(null); setSuggestion(null);
@@ -339,296 +317,312 @@ export default function Home() {
 
   const noResults = !searchLoading && !searchErr && q.trim().length >= 2 && hits.length === 0;
 
+  // ---------- layout ----------
   return (
-    <main style={{ maxWidth: 880, margin: "2rem auto", padding: "0 1rem", fontFamily: "ui-sans-serif, system-ui" }}>
-      <h1 style={{ fontSize: "1.9rem", marginBottom: 8 }}>DineSafe NYC — Compliance Coach</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>
-        Type a NYC restaurant name to search, use ↑/↓ then Enter to score, or share a deep link with <code>?camis=</code>.
-      </p>
-
-      {!API_BASE && (
-        <p style={{ background: "#fff3cd", padding: 12, borderRadius: 8, border: "1px solid #ffe58f" }}>
-          <b>Heads up:</b> Set <code>NEXT_PUBLIC_API_BASE</code> to your Cloud Run URL to use the API.
+    <main style={{ maxWidth: 1180, margin: "2rem auto", padding: "0 1rem", fontFamily: "ui-sans-serif, system-ui" }}>
+      {/* Header (spans both columns) */}
+      <div style={{ marginBottom: 12 }}>
+        <h1 style={{ fontSize: "1.9rem", marginBottom: 8 }}>DineSafe NYC — Compliance Coach</h1>
+        <p style={{ color: "#555", marginTop: 0 }}>
+          Type a NYC restaurant name to search, use ↑/↓ then Enter to score, or share a deep link with <code>?camis=</code>.
         </p>
-      )}
-
-      <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            ref={inputRef}
-            placeholder="e.g. pizza, sushi, coffee"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={onInputKeyDown}
-            style={{ flex: 1, padding: "0.65rem 0.8rem", border: "1px solid #ccc", borderRadius: 10 }}
-            aria-label="Search restaurants"
-          />
-          <button
-            onClick={handleStartOver}
-            title="Clear selection and search"
-            style={{ ...btnStyle, padding: "8px 12px", cursor: "pointer" }}
-          >
-            Start over
-          </button>
-        </div>
-
-        {searchLoading && <Spinner label="Searching…" />}
-        {searchErr && <div style={{ color: "crimson" }}>Error: {searchErr}</div>}
-
-        {suggestion && (
-          <div style={{ marginTop: -6 }}>
-            <button
-              onClick={() => setQ(suggestion)}
-              style={{
-                background: "#f5f5f5",
-                border: "1px solid #e6e6e6",
-                borderRadius: 999,
-                padding: "4px 10px",
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-              aria-label={`Use suggestion ${suggestion}`}
-            >
-              Did you mean “{suggestion}”?
-            </button>
-          </div>
-        )}
-
-        {noResults && (
-          <div style={{ color: "#666" }}>
-            No results for “{q}”. Try fewer words, remove extra letters, or search part of the name.
-          </div>
-        )}
-
-        {hits.length > 0 && (
-          <div>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Showing {hits.length} restaurant(s)</div>
-            <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 8, maxHeight: 360, overflowY: "auto" }}>
-              {hits.map((h, i) => {
-                const active = i === highlighted;
-                return (
-                  <button
-                    key={h.camis}
-                    ref={(el) => { itemRefs.current[h.camis] = el; }}
-                    onClick={() => selectHit(h)}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "10px 12px",
-                      border: "1px solid #eee",
-                      borderRadius: 10,
-                      margin: "6px 0",
-                      background: active ? "#f5f5f5" : "#fff",
-                      cursor: "pointer",
-                      outline: active ? "2px solid #a3a3a3" : "none",
-                    }}
-                    aria-selected={active}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ fontWeight: 600, color: "#000", marginRight: 8 }}>{h.name}</div>
-                      {/* Borough badge */}
-                      <span
-                        style={{
-                          fontSize: 11,
-                          padding: "2px 8px",
-                          borderRadius: 999,
-                          background: "#f1f5f9",
-                          border: "1px solid #e5e7eb",
-                          color: "#334155",
-                          textTransform: "uppercase",
-                          letterSpacing: 0.3,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {h.boro || "NYC"}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 13, color: "#555", marginTop: 2 }}>{h.address}</div>
-                    <div style={{ fontSize: 12, color: "#888" }}>CAMIS: {h.camis}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {!API_BASE && (
+          <p style={{ background: "#fff3cd", padding: 12, borderRadius: 8, border: "1px solid #ffe58f" }}>
+            <b>Heads up:</b> Set <code>NEXT_PUBLIC_API_BASE</code> to your Cloud Run URL to use the API.
+          </p>
         )}
       </div>
 
-      {selected && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0 }}>{selected.name} Risk Summary</h2>
-            <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <button onClick={handleBackToResults} title="Scroll back to the selected item in results" style={{ ...btnStyle, cursor: "pointer" }}>
-                Back to results
-              </button>
-              <button
-                onClick={handleShare}
-                title="Copy a shareable link"
-                style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
-                aria-label="Copy shareable link"
-                disabled={actionsDisabled}
-              >
-                Share
-              </button>
-              <a
-                href={actionsDisabled ? undefined : (deepLink || "#")}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  ...btnStyle,
-                  textDecoration: "none",
-                  pointerEvents: actionsDisabled ? "none" : "auto",
-                  opacity: actionsDisabled ? 0.5 : 1,
-                  cursor: actionsDisabled ? "not-allowed" : "pointer",
-                }}
-                aria-disabled={actionsDisabled}
-              >
-                Open in new tab
-              </a>
-              <button
-                onClick={handleCopyCamis}
-                title="Copy CAMIS"
-                style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
-                aria-label="Copy CAMIS"
-                disabled={actionsDisabled}
-              >
-                Copy CAMIS
-              </button>
-              <button
-                onClick={handleCopyJson}
-                title="Copy the raw /score JSON"
-                style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
-                aria-label="Copy /score JSON"
-                disabled={actionsDisabled}
-              >
-                Copy JSON
-              </button>
-            </div>
+      {/* Two-column grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(320px, 420px) 1fr",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
+        {/* LEFT: search + results (sticky) */}
+        <aside
+          style={{
+            position: "sticky",
+            top: 16,
+            alignSelf: "start",
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              ref={inputRef}
+              placeholder="e.g. pizza, sushi, coffee"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={onInputKeyDown}
+              style={{ flex: 1, padding: "0.65rem 0.8rem", border: "1px solid #ccc", borderRadius: 10 }}
+              aria-label="Search restaurants"
+            />
+            <button onClick={handleStartOver} title="Clear selection and search" style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              Start over
+            </button>
           </div>
 
-          {/* PRETTIER CARDS */}
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr", marginTop: 12 }}>
-            {/* Prediction card */}
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#f8fafc" }}>
-              {scoreLoading && <Spinner label="Scoring…" />}
-              {scoreErr && <div style={{ color: "crimson" }}>Error: {scoreErr}</div>}
-              {score && (
-                <div>
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                    <h3 style={{ margin: 0 }}>Prediction</h3>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        border: "1px solid #e5e7eb",
-                        background: "#fff",
-                        color: "#334155",
-                      }}
-                      title="Overall risk label"
-                    >
-                      {riskLabel(score.prob_bc)}
-                    </span>
-                  </div>
+          <div style={{ marginTop: 12 }}>
+            {searchLoading && <Spinner label="Searching…" />}
+            {searchErr && <div style={{ color: "crimson" }}>Error: {searchErr}</div>}
+            {suggestion && (
+              <div style={{ marginTop: -6 }}>
+                <button
+                  onClick={() => setQ(suggestion)}
+                  style={{ background: "#f5f5f5", border: "1px solid #e6e6e6", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontSize: 13 }}
+                  aria-label={`Use suggestion ${suggestion}`}
+                >
+                  Did you mean “{suggestion}”?
+                </button>
+              </div>
+            )}
+            {noResults && (
+              <div style={{ color: "#666" }}>
+                No results for “{q}”. Try fewer words, remove extra letters, or search part of the name.
+              </div>
+            )}
 
-                  <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: riskColor(score.prob_bc) }}>
-                      {(score.prob_bc * 100).toFixed(1)}%
-                    </div>
-                    <div style={{ color: "#555" }}>chance of <b>B or C</b> next inspection</div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ height: 10, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
-                      <div
+            {hits.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Showing {hits.length} restaurant(s)</div>
+                <div
+                  style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 8,
+                    maxHeight: "calc(100vh - 220px)",
+                    overflowY: "auto",
+                    background: "#fff",
+                  }}
+                >
+                  {hits.map((h, i) => {
+                    const active = i === highlighted;
+                    return (
+                      <button
+                        key={h.camis}
+                        ref={(el) => { itemRefs.current[h.camis] = el; }}
+                        onClick={() => selectHit(h)}
                         style={{
-                          width: `${Math.max(0, Math.min(100, score.prob_bc * 100))}%`,
-                          height: "100%",
-                          background: riskColor(score.prob_bc),
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          border: "1px solid #eee",
+                          borderRadius: 10,
+                          margin: "6px 0",
+                          background: active ? "#f5f5f5" : "#fff",
+                          cursor: "pointer",
+                          outline: active ? "2px solid #a3a3a3" : "none",
                         }}
-                        aria-hidden
-                      />
-                    </div>
-                  </div>
-
-                  {/* Rat pressure with tooltip */}
-                  <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <Tooltip
-                      label={dedent(`
-                      Local Rat Pressure combines two signals near the restaurant (≈150–200m cell):
-                      • 311 rodent complaints in the last 180 days
-                      • DOHMH rat inspection failures in the last 365 days
-                      We normalize these into an index from 0–1 using robust quantiles.
-                      Scale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8
-                      `)}
-                    >
-                      <span
-                        title="Recent 311 rodent complaints + DOHMH rat inspection fails near this location"
-                        style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", color: "#334155", display: "inline-flex", alignItems: "center", gap: 6 }}
+                        aria-selected={active}
                       >
-                        Local Rat Pressure: <b>{ratPressureLabel(score.rat_index)}</b>
-                        <InfoIcon />
-                      </span>
-                    </Tooltip>
-
-                    <span style={{ fontSize: 12, color: "#6b7280" }}>
-                      idx {fmt(score.rat_index, 2)} · 311 last 180d: {score.rat311_cnt_180d_k1 ?? "—"} · fails last 365d: {score.ratinsp_fail_365d_k1 ?? "—"}
-                    </span>
-                  </div>
-
-
-                  <p style={{ marginTop: 12, marginBottom: 0, fontWeight: 600 }}>
-                    Next Inspection Predicted Points:&nbsp;
-                    {(() => {
-                      const sameAsLast =
-                        score.predicted_points != null &&
-                        score.last_points != null &&
-                        Math.round(score.predicted_points) === Math.round(score.last_points);
-                      return sameAsLast ? "≈ last (baseline)" : (score.predicted_points ?? "—");
-                    })()}
-                  </p>
-
-                  {score.top_violation_probs && score.top_violation_probs.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 6 }}>Likely Next Violation Categories</div>
-                      <ul style={{ marginTop: 0 }}>
-                        {score.top_violation_probs.slice(0, 2).map((v, i) => (
-                          <li key={i}>
-                            {v.label} — {(v.probability * 100).toFixed(0)}% <span style={{ color: "#888" }}>(code {v.code})</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Latest Results card */}
-            {score && (
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#fff" }}>
-                <h3 style={{ marginTop: 0 }}>Latest Results</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>Last Inspection Date</div>
-                    <div style={{ fontWeight: 600 }}>{score.last_inspection_date ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>Last Points</div>
-                    <div style={{ fontWeight: 600 }}>{score.last_points ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>Last Grade</div>
-                    <div style={{ fontWeight: 600 }}>{score.last_grade ?? "—"}</div>
-                  </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontWeight: 600, color: "#000", marginRight: 8 }}>{h.name}</div>
+                          <span
+                            style={{
+                              fontSize: 11, padding: "2px 8px", borderRadius: 999,
+                              background: "#f1f5f9", border: "1px solid #e5e7eb", color: "#334155",
+                              textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h.boro || "NYC"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#555", marginTop: 2 }}>{h.address}</div>
+                        <div style={{ fontSize: 12, color: "#888" }}>CAMIS: {h.camis}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
-        </div>
-      )}
+        </aside>
+
+        {/* RIGHT: score card */}
+        <section>
+          {selected && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
+                <h2 style={{ margin: 0 }}>{selected.name} Risk Summary</h2>
+                <div style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <button onClick={handleBackToResults} title="Scroll back to the selected item in results" style={{ ...btnStyle, cursor: "pointer" }}>
+                    Back to results
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    title="Copy a shareable link"
+                    style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
+                    aria-label="Copy shareable link"
+                    disabled={actionsDisabled}
+                  >
+                    Share
+                  </button>
+                  <a
+                    href={actionsDisabled ? undefined : (deepLink || "#")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      ...btnStyle,
+                      textDecoration: "none",
+                      pointerEvents: actionsDisabled ? "none" : "auto",
+                      opacity: actionsDisabled ? 0.5 : 1,
+                      cursor: actionsDisabled ? "not-allowed" : "pointer",
+                    }}
+                    aria-disabled={actionsDisabled}
+                  >
+                    Open in new tab
+                  </a>
+                  <button
+                    onClick={handleCopyCamis}
+                    title="Copy CAMIS"
+                    style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
+                    aria-label="Copy CAMIS"
+                    disabled={actionsDisabled}
+                  >
+                    Copy CAMIS
+                  </button>
+                  <button
+                    onClick={handleCopyJson}
+                    title="Copy the raw /score JSON"
+                    style={{ ...btnStyle, cursor: actionsDisabled ? "not-allowed" : "pointer", opacity: actionsDisabled ? 0.5 : 1 }}
+                    aria-label="Copy /score JSON"
+                    disabled={actionsDisabled}
+                  >
+                    Copy JSON
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 16, gridTemplateColumns: "1fr", marginTop: 12 }}>
+                {/* Prediction card */}
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#f8fafc" }}>
+                  {scoreLoading && <Spinner label="Scoring…" />}
+                  {scoreErr && <div style={{ color: "crimson" }}>Error: {scoreErr}</div>}
+                  {score && (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
+                        <h3 style={{ margin: 0 }}>Prediction</h3>
+                        <span
+                          style={{
+                            fontSize: 12, padding: "2px 8px", borderRadius: 999,
+                            border: "1px solid #e5e7eb", background: "#fff", color: "#334155",
+                          }}
+                          title="Overall risk label"
+                        >
+                          {riskLabel(score.prob_bc)}
+                        </span>
+                      </div>
+
+                      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: riskColor(score.prob_bc) }}>
+                          {(score.prob_bc * 100).toFixed(1)}%
+                        </div>
+                        <div style={{ color: "#555" }}>chance of <b>B or C</b> next inspection</div>
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ height: 10, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
+                          <div
+                            style={{
+                              width: `${Math.max(0, Math.min(100, score.prob_bc * 100))}%`,
+                              height: "100%",
+                              background: riskColor(score.prob_bc),
+                            }}
+                            aria-hidden
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rat pressure with tooltip */}
+                      <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                        <Tooltip
+                          label={dedent(`
+                          Local Rat Pressure combines two signals near the restaurant (≈150–200m cell):
+                          • 311 rodent complaints in the last 180 days
+                          • DOHMH rat inspection failures in the last 365 days
+                          We normalize these into an index from 0–1 using robust quantiles.
+                          Scale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8
+                          `)}
+                        >
+                          <span
+                            title="Recent 311 rodent complaints + DOHMH rat inspection fails near this location"
+                            style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid #e5e7eb", background: "#fff", color: "#334155", display: "inline-flex", alignItems: "center", gap: 6 }}
+                          >
+                            Local Rat Pressure: <b>{ratPressureLabel(score.rat_index)}</b>
+                            <InfoIcon />
+                          </span>
+                        </Tooltip>
+
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>
+                          idx {fmt(score.rat_index, 2)} · 311 last 180d: {score.rat311_cnt_180d_k1 ?? "—"} · fails last 365d: {score.ratinsp_fail_365d_k1 ?? "—"}
+                        </span>
+                      </div>
+
+                      <p style={{ marginTop: 12, marginBottom: 0, fontWeight: 600 }}>
+                        Next Inspection Predicted Points:&nbsp;
+                        {(() => {
+                          const sameAsLast =
+                            score.predicted_points != null &&
+                            score.last_points != null &&
+                            Math.round(score.predicted_points) === Math.round(score.last_points);
+                          return sameAsLast ? "≈ last (baseline)" : (score.predicted_points ?? "—");
+                        })()}
+                      </p>
+
+                      {score.top_violation_probs && score.top_violation_probs.length > 0 && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Likely Next Violation Categories</div>
+                        <ul
+                          style={{
+                            margin: 0,
+                            paddingLeft: 20,          // move bullets in from the card edge
+                            listStyleType: "disc",
+                            listStylePosition: "outside",
+                          }}
+                        >
+                          {score.top_violation_probs.slice(0, 2).map((v, i) => (
+                            <li key={i} style={{ lineHeight: 1.4 }}>
+                              {v.label} — {(v.probability * 100).toFixed(0)}%{" "}
+                              <span style={{ color: "#888" }}>(code {v.code})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    </div>
+                  )}
+                </div>
+
+                {/* Latest Results card */}
+                {score && (
+                  <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#fff" }}>
+                    <h3 style={{ marginTop: 0 }}>Latest Results</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>Last Inspection Date</div>
+                        <div style={{ fontWeight: 600 }}>{score.last_inspection_date ?? "—"}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>Last Points</div>
+                        <div style={{ fontWeight: 600 }}>{score.last_points ?? "—"}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>Last Grade</div>
+                        <div style={{ fontWeight: 600 }}>{score.last_grade ?? "—"}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
 
       {toast && (
         <div
@@ -653,7 +647,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-
-
