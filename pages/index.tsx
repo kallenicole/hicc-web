@@ -574,17 +574,26 @@ export default function Home() {
                       </p>
 
                       {score.top_violation_probs && score.top_violation_probs.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontWeight: 600, marginBottom: 6 }}>Likely Next Violation Categories</div>
-                          <ul style={{ marginTop: 0 }}>
-                            {score.top_violation_probs.slice(0, 2).map((v, i) => (
-                              <li key={i}>
-                                {v.label} — {(v.probability * 100).toFixed(0)}% <span style={{ color: "#888" }}>(code {v.code})</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Likely Next Violation Categories</div>
+                        <ul
+                          style={{
+                            margin: 0,
+                            paddingLeft: 20,          // move bullets in from the card edge
+                            listStyleType: "disc",
+                            listStylePosition: "outside",
+                          }}
+                        >
+                          {score.top_violation_probs.slice(0, 2).map((v, i) => (
+                            <li key={i} style={{ lineHeight: 1.4 }}>
+                              {v.label} — {(v.probability * 100).toFixed(0)}%{" "}
+                              <span style={{ color: "#888" }}>(code {v.code})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     </div>
                   )}
                 </div>
