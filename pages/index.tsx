@@ -18,6 +18,8 @@ type ScoreResp = {
   rat_index?: number | null;
   rat311_cnt_180d_k1?: number | null;
   ratinsp_fail_365d_k1?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -103,6 +105,51 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
     </span>
   );
 }
+
+// Utility (optional)
+function osmEmbedUrl(lat: number, lon: number, dx = 0.003, dy = 0.002) {
+  const left = (lon - dx).toFixed(6);
+  const right = (lon + dx).toFixed(6);
+  const top = (lat + dy).toFixed(6);
+  const bottom = (lat - dy).toFixed(6);
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${left},${bottom},${right},${top}&layer=mapnik&marker=${lat},${lon}`;
+  const link = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`;
+  return { src, link };
+}
+
+// Component (uses the helper)
+function OSMMap({ lat, lon, name }: { lat?: number | null; lon?: number | null; name?: string }) {
+  if (lat == null || lon == null) return null;
+  const { src, link } = osmEmbedUrl(lat, lon);
+  return (
+    <div>
+      <iframe
+        title={name ? `Map of ${name}` : "Map"}
+        src={src}
+        style={{ border: 0, width: "100%", height: 220, borderRadius: 12 }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+      <div style={{ marginTop: 6 }}>
+        <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#2563eb" }}>
+          View on OpenStreetMap
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// Build a single OSM embed URL string for an <iframe>
+function osmEmbedSrc(lat: number, lon: number, dx = 0.003, dy = 0.002): string {
+  const left = (lon - dx).toFixed(6);
+  const right = (lon + dx).toFixed(6);
+  const top = (lat + dy).toFixed(6);
+  const bottom = (lat - dy).toFixed(6);
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${left},${bottom},${right},${top}&layer=mapnik&marker=${lat},${lon}`;
+}
+
+
+
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -602,6 +649,7 @@ export default function Home() {
                 {score && (
                   <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#fff" }}>
                     <h3 style={{ marginTop: 0 }}>Latest Results</h3>
+
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12 }}>
                       <div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>Last Inspection Date</div>
@@ -616,34 +664,70 @@ export default function Home() {
                         <div style={{ fontWeight: 600 }}>{score.last_grade ?? "—"}</div>
                       </div>
                     </div>
-                  </div>
-                )}
+
+                  {/* Mini map (only shows if we have lat/lon) */}
+                  {(score.latitude != null && score.longitude != null) && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>Location</div>
+                      <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                        <iframe
+                          title="Restaurant location map"
+                          src={osmEmbedSrc(score.latitude as number, score.longitude as number)}
+                          style={{ width: "100%", height: 240, border: 0 }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
+                      <div style={{ marginTop: 6 }}>
+                        <a
+                          href={`https://www.openstreetmap.org/?mlat=${score.latitude}&mlon=${score.longitude}#map=17/${score.latitude}/${score.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: "#2563eb", textDecoration: "none" }}
+                        >
+                          Open full map →
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
             </div>
           )}
         </section>
       </div>
 
-      {toast && (
-        <div
-          role="status"
-          style={{
-            position: "fixed",
-            left: "50%",
-            bottom: 24,
-            transform: "translateX(-50%)",
-            background: "#111",
-            color: "#fff",
-            padding: "8px 12px",
-            borderRadius: 8,
-            boxShadow: "0 6px 20px rgba(0,0,0,0.25)",
-            fontSize: 14,
-            zIndex: 50,
-          }}
-        >
-          {toast}
-        </div>
-      )}
+                    {toast && (
+                          <div
+                            role="status"
+                            aria-live="polite"
+                            style={{
+                              position: "fixed",
+                              left: "50%",
+                              bottom: "calc(24px + env(safe-area-inset-bottom))",
+                              transform: "translateX(-50%)",
+                              background: "#111",
+                              color: "#fff",
+                              padding: "8px 12px",
+                              borderRadius: 8,
+                              boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+                              fontSize: 14,
+                              zIndex: 9999,
+                              pointerEvents: "none",
+                              opacity: 0.98,
+                              animation: "toastfade 220ms ease-out",
+                            }}
+                          >
+                            {toast}
+                            <style jsx>{`
+                              @keyframes toastfade {
+                                from { transform: translateX(-50%) translateY(8px); opacity: 0; }
+                                to   { transform: translateX(-50%) translateY(0);  opacity: 0.98; }
+                              }
+                            `}</style>
+                          </div>
+                        )}
     </main>
   );
 }
