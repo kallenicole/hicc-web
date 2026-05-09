@@ -350,6 +350,7 @@ export default function Home() {
         address: typeof address === "string" ? address : "",
         boro: typeof boro === "string" ? boro : "",
       };
+      suppressSearch.current = true;
       setSelected(hit);
       setQ(toTitleCase(hit.name));
       runScore(camis);
