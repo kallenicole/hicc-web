@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
 
 type Hit = { camis: string; name: string; address: string; boro: string };
 type ViolationProb = { code: string; probability: number; label: string };
@@ -74,6 +75,12 @@ function inferGrade(grade?: string | null, points?: number | null): string | nul
 }
 function truncateLabel(s: string, max = 72) {
   return s.length > max ? s.slice(0, max).trimEnd() + "…" : s;
+}
+function formatAddress(address: string, boro?: string): string {
+  // Strip trailing zip code (5 digits) the API appends to the address
+  const stripped = address.replace(/\s+\d{5}\s*$/, "").trim();
+  const titled = toTitleCase(stripped);
+  return boro ? `${titled} · ${boro}` : titled;
 }
 function formatDate(iso?: string | null): string {
   if (!iso) return "";
@@ -279,6 +286,7 @@ export default function Home() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [dataRefreshed, setDataRefreshed] = useState<string | null>(null);
   const [nbZip, setNbZip] = useState("");
   const [nbQueriedZip, setNbQueriedZip] = useState<string | null>(null);
   const [nbResults, setNbResults] = useState<NbHit[]>([]);
@@ -365,6 +373,13 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
+  useEffect(() => {
+    if (!API_BASE) return;
+    fetch(`${API_BASE}/metadata`).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.last_refreshed) setDataRefreshed(d.last_refreshed);
+    }).catch(() => {});
+  }, []);
+
   const runScore = async (camis: string) => {
     setScoreLoading(true); setScoreErr(null); setScore(null);
     setDropdownOpen(false);
@@ -425,8 +440,24 @@ export default function Home() {
 
   const noResults = !searchLoading && !searchErr && q.trim().length >= 2 && hits.length === 0 && !selected;
 
+  const pageTitle = selected ? `${toTitleCase(selected.name)} · DineSafe NYC` : "DineSafe NYC — NYC Restaurant Health Inspection Risk";
+  const pageDesc = selected
+    ? `Health inspection risk score for ${toTitleCase(selected.name)} in ${selected.boro || "NYC"}. See last inspection grade, violation history, and predicted next inspection risk.`
+    : "Predict any NYC restaurant's next health inspection risk. See violation history, grade trends, and local rodent pressure — updated nightly from NYC Open Data.";
+
   return (
     <>
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDesc} />
+      </Head>
+
       {/* Header */}
       <header style={{ background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -437,10 +468,6 @@ export default function Home() {
               <div style={{ fontSize: 11, color: "#64748b" }}>Health Inspection Compliance Coach</div>
             </div>
           </button>
-          <a href={`${API_BASE}/docs`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 12, color: "#64748b", border: "1px solid #1e293b", borderRadius: 6, padding: "4px 10px" }}>
-            API Docs
-          </a>
         </div>
       </header>
 
@@ -539,7 +566,7 @@ export default function Home() {
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(h.name)}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 1 }}>{toTitleCase(h.address)}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 1 }}>{formatAddress(h.address)}</div>
                     </div>
                     <span style={{
                       fontSize: 10, padding: "2px 8px", borderRadius: 999, flexShrink: 0,
@@ -569,7 +596,7 @@ export default function Home() {
               <div className="restaurant-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
                 <div>
                   <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.2 }}>{toTitleCase(selected.name)}</h1>
-                  {selected.address && <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{toTitleCase(selected.address)}{selected.boro ? ` · ${selected.boro}` : ""}</div>}
+                  {selected.address && <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{formatAddress(selected.address, selected.boro)}</div>}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={async () => { const ok = await copyText(deepLink); showToast(ok ? "Link copied!" : "Copy failed"); }}
@@ -578,19 +605,26 @@ export default function Home() {
                       background: "#fff", fontSize: 13, cursor: score ? "pointer" : "not-allowed",
                       opacity: score ? 1 : 0.4, color: "#334155", fontWeight: 500,
                     }}>Share</button>
-                  <button onClick={async () => { const ok = await copyText(JSON.stringify(score, null, 2)); showToast(ok ? "Copied!" : "Failed"); }}
-                    disabled={!score} style={{
-                      padding: "6px 12px", border: "1px solid #e2e8f0", borderRadius: 8,
-                      background: "#fff", fontSize: 13, cursor: score ? "pointer" : "not-allowed",
-                      opacity: score ? 1 : 0.4, color: "#334155", fontWeight: 500,
-                    }}>Copy JSON</button>
                 </div>
               </div>
             )}
 
             {scoreLoading && (
-              <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>
-                <Spinner /><div style={{ marginTop: 12, fontSize: 14 }}>Scoring…</div>
+              <div style={{ display: "grid", gap: 16 }}>
+                <div className="grid-2col">
+                  {[1, 2].map(i => (
+                    <div key={i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                      <div style={{ width: 80, height: 10, borderRadius: 6, background: "#f1f5f9", marginBottom: 16 }} />
+                      <div style={{ width: 120, height: 40, borderRadius: 8, background: "#f1f5f9", marginBottom: 12 }} />
+                      <div style={{ width: "100%", height: 8, borderRadius: 6, background: "#f1f5f9", marginBottom: 8 }} />
+                      <div style={{ width: "60%", height: 8, borderRadius: 6, background: "#f1f5f9" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ width: 140, height: 10, borderRadius: 6, background: "#f1f5f9", marginBottom: 12 }} />
+                  <div style={{ width: "100%", height: 8, borderRadius: 6, background: "#f1f5f9" }} />
+                </div>
               </div>
             )}
             {scoreErr && (
@@ -978,6 +1012,30 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer style={{ borderTop: "1px solid #f1f5f9", marginTop: 80, padding: "32px 24px", background: "#fff" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
+            <strong style={{ color: "#64748b" }}>Disclaimer:</strong> DineSafe NYC is an unofficial tool and is not affiliated with the NYC Department of Health and Mental Hygiene.
+            Scores are predictive estimates based on historical data — not official grades.
+            For official inspection records, visit{" "}
+            <a href="https://www.nyc.gov/site/doh/business/food-operators/restaurants.page" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6" }}>NYC DOHMH</a>.
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>
+              Data: <a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>NYC Open Data</a>
+              {dataRefreshed ? ` · Updated ${formatDate(dataRefreshed)}` : " · Updated nightly"}
+            </span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>
+              Maps: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>© OpenStreetMap contributors</a>
+            </span>
+            <span style={{ fontSize: 12, color: "#cbd5e1", marginLeft: "auto" }}>
+              <a href={`${API_BASE}/docs`} target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>API Docs</a>
+            </span>
+          </div>
+        </div>
+      </footer>
 
       {/* Toast */}
       {toast && (

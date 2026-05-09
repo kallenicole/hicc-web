@@ -1,0 +1,12 @@
+{
+  "name": "DineSafe NYC",
+  "short_name": "DineSafe",
+  "description": "Predict any NYC restaurant's next health inspection risk",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}
