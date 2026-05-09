@@ -96,7 +96,6 @@ function Spinner() {
         width: 16, height: 16, border: "2px solid #e2e8f0", borderTopColor: "#3b82f6",
         borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite",
       }} />
-      <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </span>
   );
 }
@@ -567,22 +566,8 @@ export default function Home() {
           animation: "toastfade 200ms ease-out",
         }}>
           {toast}
-          <style jsx>{`
-            @keyframes toastfade {
-              from { transform: translateX(-50%) translateY(6px); opacity: 0; }
-              to   { transform: translateX(-50%) translateY(0); opacity: 1; }
-            }
-          `}</style>
         </div>
       )}
-
-      <style jsx global>{`
-        @media (max-width: 600px) {
-          main > div > div[style*="grid-template-columns: 1fr 1fr"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

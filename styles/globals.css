@@ -14,4 +14,17 @@ a { color: inherit; text-decoration: none; }
 
 button, input, select, textarea { font-family: inherit; color: #111; }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toastfade {
+  from { transform: translateX(-50%) translateY(6px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .score-grid { grid-template-columns: 1fr !important; }
+}
+
 @media (max-width: 100vw) { html { overflow-x: hidden; } }
