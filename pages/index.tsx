@@ -396,9 +396,7 @@ export default function Home() {
   const handleHome = () => {
     setQ(""); setHits([]); setSelected(null); setScore(null); setScoreErr(null);
     setDropdownOpen(false); setHighlighted(-1);
-    const { camis, ...rest } = router.query;
-    void camis;
-    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   };
 
   const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
