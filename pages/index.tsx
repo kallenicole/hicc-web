@@ -297,7 +297,7 @@ export default function Home() {
     }
   };
 
-  const noResults = !searchLoading && !searchErr && q.trim().length >= 2 && hits.length === 0;
+  const noResults = !searchLoading && !searchErr && q.trim().length >= 2 && hits.length === 0 && !selected;
 
   return (
     <>
