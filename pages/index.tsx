@@ -800,7 +800,6 @@ export default function Home() {
                       </div>
                     )}
                   </div>
-                  )}
 
                   {/* Map */}
                   {score.latitude != null && score.longitude != null && (
