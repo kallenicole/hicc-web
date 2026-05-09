@@ -28,14 +28,9 @@ type NbHit = {
   camis: string; name: string; address: string; boro: string; cuisine: string;
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
-type RiskyHit = {
-  camis: string; name: string; address: string; boro: string; cuisine: string;
-  last_score: number; last_grade: string | null; last_date: string | null; days_since: number | null;
-};
 type NycInsights = {
   total_restaurants: number;
   grade_counts: { A: number; B: number; C: number; ungraded: number };
-  top_risky: RiskyHit[];
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -937,51 +932,6 @@ export default function Home() {
                   );
                 })()}
 
-                {/* Top 5 riskiest */}
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>
-                  Highest-risk restaurants right now
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {insights.top_risky.map((r, i) => {
-                    const g = inferGrade(r.last_grade, r.last_score);
-                    return (
-                      <button
-                        key={r.camis}
-                        onClick={() => selectHit({ camis: r.camis, name: r.name, address: r.address, boro: r.boro })}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 12, width: "100%",
-                          padding: "12px 14px", background: "#fff",
-                          border: "1px solid #fecaca", borderRadius: 12,
-                          cursor: "pointer", textAlign: "left",
-                          transition: "box-shadow 0.12s",
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
-                      >
-                        <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontWeight: 800, fontSize: 14,
-                          background: g ? gradeColor(g) + "18" : "#f1f5f9",
-                          color: gradeColor(g),
-                          border: `1px solid ${gradeColor(g)}40`,
-                        }}>{g ?? "—"}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(r.name)}</div>
-                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{r.cuisine || ""}{r.cuisine && r.boro ? " · " : ""}{r.boro}</div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: "#ef4444" }}>{r.last_score} pts</div>
-                          <div style={{ fontSize: 10, color: "#94a3b8" }}>{r.last_date ? daysAgo(r.last_date) : ""}</div>
-                        </div>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
-                          <polyline points="9,18 15,12 9,6" />
-                        </svg>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
