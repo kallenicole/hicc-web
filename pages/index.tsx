@@ -26,20 +26,19 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 function DineSafeLogo() {
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="DineSafe NYC logo">
-      {/* Background circle */}
       <circle cx="18" cy="18" r="18" fill="#1e40af" />
-      {/* Fork (left) */}
-      <line x1="13" y1="8" x2="13" y2="14" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
-      <line x1="11" y1="8" x2="11" y2="12" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
-      <line x1="15" y1="8" x2="15" y2="12" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M11 12 Q13 14 15 12" stroke="#93c5fd" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-      <line x1="13" y1="14" x2="13" y2="28" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
-      {/* Knife (right) */}
-      <path d="M23 8 C25 8 26 10 26 13 L23 14 L23 28" stroke="#93c5fd" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Checkmark shield overlay */}
-      <circle cx="26" cy="26" r="7" fill="#0f172a" />
-      <circle cx="26" cy="26" r="6" fill="#16a34a" />
-      <polyline points="23,26 25.2,28.2 29,23.5" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Fork — tines */}
+      <line x1="15" y1="8" x2="15" y2="13" stroke="#93c5fd" strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="18" y1="8" x2="18" y2="13" stroke="#93c5fd" strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="21" y1="8" x2="21" y2="13" stroke="#93c5fd" strokeWidth="1.6" strokeLinecap="round"/>
+      {/* Fork — neck curve */}
+      <path d="M15 13 Q15 16 18 16 Q21 16 21 13" stroke="#93c5fd" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+      {/* Fork — handle */}
+      <line x1="18" y1="16" x2="18" y2="28" stroke="#93c5fd" strokeWidth="1.6" strokeLinecap="round"/>
+      {/* Green check badge */}
+      <circle cx="27" cy="27" r="7" fill="#0f172a" />
+      <circle cx="27" cy="27" r="6" fill="#16a34a" />
+      <polyline points="24,27 26.2,29.2 30,24.5" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -149,7 +148,7 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
         position: "absolute", bottom: "125%", left: 0,
         background: "#1e293b", borderRadius: 8, padding: "10px 12px",
         boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-        fontSize: 12, color: "#f1f5f9", whiteSpace: "pre-wrap", maxWidth: 300,
+        fontSize: 12, color: "#f1f5f9", whiteSpace: "pre-wrap", maxWidth: 420,
         lineHeight: 1.5, zIndex: 60,
         opacity: open ? 1 : 0, pointerEvents: "none", transition: "opacity 120ms ease",
       }}>{label}</span>
@@ -180,6 +179,7 @@ export default function Home() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const suppressSearch = useRef(false);
 
   const deepLink = useMemo(() => {
     if (!selected) return "";
@@ -224,6 +224,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!API_BASE) return;
+    if (suppressSearch.current) { suppressSearch.current = false; return; }
     if (q.trim().length < 2) { setHits([]); setSearchErr(null); setSuggestion(null); setHighlighted(-1); setDropdownOpen(false); return; }
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
@@ -257,6 +258,7 @@ export default function Home() {
   };
 
   const selectHit = (h: Hit) => {
+    suppressSearch.current = true;
     setSelected(h); setQ(h.name); setDropdownOpen(false); setHits([]);
     if (timer.current) clearTimeout(timer.current);
     if (abortRef.current) abortRef.current.abort();
@@ -537,29 +539,35 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                  <div className="rat-stats" style={{ display: "flex", gap: 20, marginLeft: "auto", flexWrap: "wrap" }}>
+                  <div className="rat-stats" style={{ display: "flex", gap: 24, marginLeft: "auto", flexWrap: "wrap" }}>
                     {[
                       {
-                        label: "Rat index",
+                        label: "Rat Index",
                         value: score.rat_index != null ? score.rat_index.toFixed(2) : "—",
-                        tooltip: "Composite 0–1 score combining 311 complaints and inspection failures, normalized by quantile.\nLow <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8",
+                        desc: "0–1 composite score",
+                        tooltip: "A 0–1 score combining nearby 311 complaints and city rat inspection failures, normalized by quantile across all NYC restaurants.\nScale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8",
                       },
                       {
-                        label: "311 complaints",
+                        label: "311 Complaints",
                         value: score.rat311_cnt_180d_k1 ?? "—",
-                        tooltip: "Number of 311 'Rodent' complaints filed within ≈150–200m of this restaurant in the last 180 days.",
+                        desc: "Last 180 days nearby",
+                        tooltip: "311 is NYC's non-emergency city services hotline. This counts rodent complaints filed within ≈150–200m of this restaurant over the last 180 days.",
                       },
                       {
-                        label: "Rat insp. fails",
+                        label: "Rat Inspection Fails",
                         value: score.ratinsp_fail_365d_k1 ?? "—",
-                        tooltip: "Number of failed DOHMH rat inspections within ≈150–200m of this restaurant in the last 365 days.",
+                        desc: "Last 365 days nearby",
+                        tooltip: "Number of failed DOHMH (NYC Dept. of Health) rat inspections at properties within ≈150–200m of this restaurant over the last 365 days.",
                       },
                     ].map(stat => (
                       <div key={stat.label} style={{ textAlign: "center" }}>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>{stat.value}</div>
+                        <div style={{ fontWeight: 700, fontSize: 20, color: "#0f172a" }}>{stat.value}</div>
                         <Tooltip label={stat.tooltip}>
-                          <div style={{ fontSize: 11, color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: 3, cursor: "default" }}>
-                            {stat.label} <InfoIcon style={{ color: "#cbd5e1" }} />
+                          <div style={{ cursor: "default" }}>
+                            <div style={{ fontSize: 12, color: "#334155", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                              {stat.label} <InfoIcon style={{ color: "#cbd5e1" }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "#94a3b8" }}>{stat.desc}</div>
                           </div>
                         </Tooltip>
                       </div>
