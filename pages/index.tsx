@@ -236,7 +236,9 @@ export default function Home() {
   };
 
   const selectHit = (h: Hit) => {
-    setSelected(h); setQ(h.name); setDropdownOpen(false);
+    setSelected(h); setQ(h.name); setDropdownOpen(false); setHits([]);
+    if (timer.current) clearTimeout(timer.current);
+    if (abortRef.current) abortRef.current.abort();
     runScore(h.camis);
     router.replace({ pathname: router.pathname, query: { ...router.query, camis: h.camis } }, undefined, { shallow: true });
   };
