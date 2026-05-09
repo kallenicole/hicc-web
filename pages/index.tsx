@@ -283,11 +283,11 @@ export default function Home() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px 80px" }}>
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px 80px" }} className="main-content">
 
         {/* Hero — only shown when nothing is selected */}
         {!selected && !scoreLoading && (
-          <div style={{ textAlign: "center", padding: "64px 0 40px" }}>
+          <div className="hero" style={{ textAlign: "center", padding: "64px 0 40px" }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               background: "#f0fdf4", border: "1px solid #bbf7d0",
@@ -405,7 +405,7 @@ export default function Home() {
           <div>
             {/* Restaurant header */}
             {selected && (
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+              <div className="restaurant-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
                 <div>
                   <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.2 }}>{selected.name}</h1>
                   {selected.address && <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{selected.address}{selected.boro ? ` · ${selected.boro}` : ""}</div>}
@@ -441,7 +441,7 @@ export default function Home() {
             {score && (
               <div style={{ display: "grid", gap: 16 }}>
                 {/* Top row: risk + last inspection */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="grid-2col">
                   {/* Risk score */}
                   <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Risk Score</div>
@@ -504,7 +504,7 @@ export default function Home() {
                 </div>
 
                 {/* Rat pressure */}
-                <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                <div className="rat-bar" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                   <Tooltip label={dedent(`
                     Local Rat Pressure combines two signals near the restaurant (≈150–200m cell):
                     • 311 rodent complaints in the last 180 days
@@ -523,7 +523,7 @@ export default function Home() {
                       </div>
                     </div>
                   </Tooltip>
-                  <div style={{ display: "flex", gap: 20, marginLeft: "auto", flexWrap: "wrap" }}>
+                  <div className="rat-stats" style={{ display: "flex", gap: 20, marginLeft: "auto", flexWrap: "wrap" }}>
                     {[
                       { label: "Rat index", value: score.rat_index != null ? score.rat_index.toFixed(2) : "—" },
                       { label: "311 (180d)", value: score.rat311_cnt_180d_k1 ?? "—" },
@@ -538,7 +538,7 @@ export default function Home() {
                 </div>
 
                 {/* Violations + map */}
-                <div style={{ display: "grid", gridTemplateColumns: score.latitude != null ? "1fr 1fr" : "1fr", gap: 16 }}>
+                <div className={score.latitude != null ? "grid-2col" : ""} style={{ display: "grid", gap: 16 }}>
                   {/* Violations */}
                   {score.top_violation_probs && score.top_violation_probs.length > 0 && (
                     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
@@ -584,11 +584,7 @@ export default function Home() {
           <div style={{ marginTop: 40 }}>
 
             {/* Stats bar */}
-            <div style={{
-              display: "flex", justifyContent: "center", gap: 0,
-              background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
-              overflow: "hidden", marginBottom: 40,
-            }}>
+            <div className="grid-stats" style={{ marginBottom: 40 }}>
               {[
                 { value: "26,000+", label: "Restaurants tracked" },
                 { value: "Nightly", label: "Data refresh" },
@@ -606,11 +602,11 @@ export default function Home() {
             </div>
 
             {/* Example restaurants */}
-            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="examples-header" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
               <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            <div className="grid-examples">
               {EXAMPLES.map(ex => (
                 <button
                   key={ex.camis}
