@@ -302,11 +302,8 @@ export default function Home() {
   };
 
   const handleClear = () => {
-    setQ(""); setHits([]); setSelected(null); setScore(null); setScoreErr(null);
+    setQ(""); setHits([]);
     setDropdownOpen(false); setHighlighted(-1);
-    const { camis, ...rest } = router.query;
-    void camis;
-    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
     inputRef.current?.focus();
   };
 
@@ -386,7 +383,7 @@ export default function Home() {
               ref={inputRef}
               placeholder="Search any NYC restaurant…"
               value={q}
-              onChange={e => { setQ(e.target.value); if (selected) { setSelected(null); setScore(null); } }}
+              onChange={e => { setQ(e.target.value); }}
               onKeyDown={onInputKeyDown}
               onFocus={() => { if (hits.length) setDropdownOpen(true); }}
               aria-label="Search restaurants"
