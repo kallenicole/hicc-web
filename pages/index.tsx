@@ -140,10 +140,17 @@ function isAbortError(err: unknown) {
 function dedent(s: string) {
   return s.replace(/^[ \t]+/gm, "").trim();
 }
-function osmEmbedSrc(lat: number, lon: number, dx = 0.003, dy = 0.002) {
-  const l = (lon - dx).toFixed(6), r = (lon + dx).toFixed(6);
-  const t = (lat + dy).toFixed(6), b = (lat - dy).toFixed(6);
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${l},${b},${r},${t}&layer=mapnik&marker=${lat},${lon}`;
+function leafletSrcDoc(lat: number, lon: number) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>html,body,#map{margin:0;padding:0;width:100%;height:100%;}</style>
+</head><body><div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map=L.map('map',{zoomControl:true,scrollWheelZoom:false,attributionControl:true}).setView([${lat},${lon}],16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,detectRetina:true,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+L.marker([${lat},${lon}]).addTo(map);
+</script></body></html>`;
 }
 async function copyText(text: string) {
   try {
@@ -808,10 +815,9 @@ export default function Home() {
                     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                       <iframe
                         title="Restaurant location"
-                        src={osmEmbedSrc(score.latitude, score.longitude)}
-                        style={{ width: "100%", height: "100%", minHeight: 180, border: 0, display: "block" }}
+                        srcDoc={leafletSrcDoc(score.latitude, score.longitude)}
+                        style={{ width: "100%", height: "100%", minHeight: 200, border: 0, display: "block" }}
                         loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
                       />
                     </div>
                   )}
