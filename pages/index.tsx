@@ -23,6 +23,27 @@ type ScoreResp = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
+function DineSafeLogo() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="DineSafe NYC logo">
+      {/* Background circle */}
+      <circle cx="18" cy="18" r="18" fill="#1e40af" />
+      {/* Fork (left) */}
+      <line x1="13" y1="8" x2="13" y2="14" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="11" y1="8" x2="11" y2="12" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="15" y1="8" x2="15" y2="12" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M11 12 Q13 14 15 12" stroke="#93c5fd" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <line x1="13" y1="14" x2="13" y2="28" stroke="#93c5fd" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Knife (right) */}
+      <path d="M23 8 C25 8 26 10 26 13 L23 14 L23 28" stroke="#93c5fd" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Checkmark shield overlay */}
+      <circle cx="26" cy="26" r="7" fill="#0f172a" />
+      <circle cx="26" cy="26" r="6" fill="#16a34a" />
+      <polyline points="23,26 25.2,28.2 29,23.5" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 const EXAMPLES = [
   { camis: "50117047", name: "$1 Pizza", address: "333B Avenue of the Americas", boro: "Manhattan" },
   { camis: "41311152", name: "Katz's Delicatessen", address: "205 E Houston St", boro: "Manhattan" },
@@ -271,13 +292,13 @@ export default function Home() {
       {/* Header */}
       <header style={{ background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>🍽️</span>
-            <div>
+          <button onClick={handleClear} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            <DineSafeLogo />
+            <div style={{ textAlign: "left" }}>
               <div style={{ fontWeight: 700, fontSize: "1rem", color: "#f8fafc", letterSpacing: "-0.01em" }}>DineSafe NYC</div>
               <div style={{ fontSize: 11, color: "#64748b" }}>Health Inspection Compliance Coach</div>
             </div>
-          </div>
+          </button>
           <a href={`${API_BASE}/docs`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 12, color: "#64748b", border: "1px solid #1e293b", borderRadius: 6, padding: "4px 10px" }}>
             API Docs
@@ -313,7 +334,7 @@ export default function Home() {
         )}
 
         {/* Search */}
-        <div ref={containerRef} style={{ position: "relative", marginBottom: selected ? 32 : 0 }}>
+        <div ref={containerRef} style={{ position: "relative", marginBottom: selected ? 32 : 0, marginTop: selected ? 32 : 0 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
             background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
