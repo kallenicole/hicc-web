@@ -770,9 +770,9 @@ export default function Home() {
                 {/* Predicted violations + map */}
                 <div className={score.latitude != null ? "grid-2col" : ""} style={{ display: "grid", gap: 16 }}>
                   {/* Violations */}
-                  {score.top_violation_probs && score.top_violation_probs.length > 0 && (
-                    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Likely Next Violations</div>
+                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Likely Next Violations</div>
+                    {score.top_violation_probs && score.top_violation_probs.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {score.top_violation_probs.slice(0, 2).map((v, i) => {
                           const displayProb = Math.min(0.9, v.probability);
@@ -791,7 +791,15 @@ export default function Home() {
                           );
                         })}
                       </div>
-                    </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#16a34a" }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>No violations in last inspection — nothing to flag</span>
+                      </div>
+                    )}
+                  </div>
                   )}
 
                   {/* Map */}
