@@ -139,30 +139,41 @@ function InfoIcon(props: React.SVGProps<SVGSVGElement>) {
 
 function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close, true);
+    document.addEventListener("touchstart", close, true);
+    return () => {
+      document.removeEventListener("mousedown", close, true);
+      document.removeEventListener("touchstart", close, true);
+    };
+  }, [open]);
+
   return (
-    <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+    <span ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
       onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-      onClick={() => setOpen(o => !o)}>
+      onClick={e => { e.stopPropagation(); setOpen(o => !o); }}>
       {children}
       <span role="tooltip" style={{
         position: "fixed",
-        bottom: "auto",
-        left: "50%",
-        top: "50%",
-        transform: open ? "translate(-50%, -50%)" : "translate(-50%, -48%)",
+        left: "50%", top: "50%",
+        transform: "translate(-50%, -50%)",
         background: "#1e293b", borderRadius: 12, padding: "16px 18px",
         boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
         fontSize: 13, color: "#f1f5f9", whiteSpace: "pre-wrap",
         width: "min(420px, 90vw)",
         lineHeight: 1.6, zIndex: 9998,
         opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
-        transition: "opacity 80ms ease, transform 80ms ease",
+        transition: "opacity 60ms ease",
       }}>{label}</span>
-      <span onClick={e => { e.stopPropagation(); setOpen(false); }} style={{
-        position: "fixed", inset: 0, zIndex: 9997,
-        pointerEvents: open ? "auto" : "none",
-      }} />
     </span>
   );
 }
