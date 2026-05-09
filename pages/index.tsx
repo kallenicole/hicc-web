@@ -23,6 +23,13 @@ type ScoreResp = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
+const EXAMPLES = [
+  { camis: "50117047", name: "$1 Pizza", address: "333B Avenue of the Americas", boro: "Manhattan" },
+  { camis: "41311152", name: "Katz's Delicatessen", address: "205 E Houston St", boro: "Manhattan" },
+  { camis: "50071959", name: "Lucali", address: "575 Henry St", boro: "Brooklyn" },
+  { camis: "40363380", name: "Joe's Shanghai", address: "9 Pell St", boro: "Manhattan" },
+];
+
 function softNormalize(s: string) {
   return s.replace(/[^a-z0-9\s]/gi, "").replace(/(.)\1{2,}/gi, "$1$1").trim();
 }
@@ -276,9 +283,35 @@ export default function Home() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px 80px" }}>
+
+        {/* Hero — only shown when nothing is selected */}
+        {!selected && !scoreLoading && (
+          <div style={{ textAlign: "center", padding: "64px 0 40px" }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "#f0fdf4", border: "1px solid #bbf7d0",
+              borderRadius: 999, padding: "4px 12px", marginBottom: 20,
+              fontSize: 12, fontWeight: 600, color: "#15803d", letterSpacing: 0.3,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
+              Updated nightly from NYC Open Data
+            </div>
+            <h1 style={{
+              fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 800,
+              color: "#0f172a", lineHeight: 1.1, margin: "0 0 16px",
+              letterSpacing: "-0.03em",
+            }}>
+              Know before you go.
+            </h1>
+            <p style={{ fontSize: 18, color: "#64748b", margin: "0 0 40px", lineHeight: 1.6, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              Predict any NYC restaurant&apos;s next health inspection risk — before the inspector shows up.
+            </p>
+          </div>
+        )}
+
         {/* Search */}
-        <div ref={containerRef} style={{ position: "relative", marginBottom: 32 }}>
+        <div ref={containerRef} style={{ position: "relative", marginBottom: selected ? 32 : 0 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
             background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
@@ -546,10 +579,67 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state: stats + examples */}
         {!selected && !scoreLoading && (
-          <div style={{ textAlign: "center", paddingTop: 40, color: "#94a3b8" }}>
-            <div style={{ fontSize: 13 }}>Search above to check any of the 26,000+ NYC restaurants on record.</div>
+          <div style={{ marginTop: 40 }}>
+
+            {/* Stats bar */}
+            <div style={{
+              display: "flex", justifyContent: "center", gap: 0,
+              background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
+              overflow: "hidden", marginBottom: 40,
+            }}>
+              {[
+                { value: "26,000+", label: "Restaurants tracked" },
+                { value: "Nightly", label: "Data refresh" },
+                { value: "5 signals", label: "Per prediction" },
+                { value: "Free", label: "No account needed" },
+              ].map((s, i) => (
+                <div key={s.label} style={{
+                  flex: 1, textAlign: "center", padding: "20px 12px",
+                  borderLeft: i > 0 ? "1px solid #f1f5f9" : "none",
+                }}>
+                  <div style={{ fontWeight: 800, fontSize: 20, color: "#0f172a" }}>{s.value}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Example restaurants */}
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
+              <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+              {EXAMPLES.map(ex => (
+                <button
+                  key={ex.camis}
+                  onClick={() => selectHit(ex)}
+                  style={{
+                    display: "flex", flexDirection: "column", textAlign: "left",
+                    padding: "16px 18px", background: "#fff",
+                    border: "1px solid #e2e8f0", borderRadius: 14,
+                    cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
+                    <span style={{
+                      fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
+                      background: "#f1f5f9", color: "#475569",
+                      textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600,
+                    }}>{ex.boro}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{ex.address}</div>
+                  <div style={{ marginTop: 12, fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>
+                    View risk score →
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </main>
