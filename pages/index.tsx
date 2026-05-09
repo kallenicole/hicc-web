@@ -327,13 +327,14 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
       onClick={e => { e.stopPropagation(); setOpen(o => !o); }}>
       {children}
       <span role="tooltip" style={{
-        position: "fixed",
-        left: "50%", top: "50%",
-        transform: "translate(-50%, -50%)",
-        background: "#1e293b", borderRadius: 12, padding: "16px 18px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-        fontSize: 13, color: "#f1f5f9", whiteSpace: "pre-wrap",
-        width: "min(420px, 90vw)",
+        position: "absolute",
+        bottom: "calc(100% + 8px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#1e293b", borderRadius: 10, padding: "10px 14px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+        fontSize: 12, color: "#f1f5f9", whiteSpace: "pre-wrap",
+        width: "min(280px, 80vw)",
         lineHeight: 1.6, zIndex: 9998,
         opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
         transition: "opacity 60ms ease",
