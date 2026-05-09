@@ -1028,7 +1028,9 @@ export default function Home() {
               {dataRefreshed ? ` · Updated ${formatDate(dataRefreshed)}` : " · Updated nightly"}
             </span>
             <span style={{ fontSize: 12, color: "#cbd5e1" }}>
-              Maps: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>© OpenStreetMap contributors</a>
+              Maps: <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>Leaflet</a>
+              {" · "}
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>© OpenStreetMap contributors</a>
             </span>
             <span style={{ fontSize: 12, color: "#cbd5e1", marginLeft: "auto" }}>
               <a href={`${API_BASE}/docs`} target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>API Docs</a>
