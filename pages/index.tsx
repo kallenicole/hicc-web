@@ -269,9 +269,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!router.isReady) return;
-    const camis = router.query.camis;
+    const { camis, name, address, boro } = router.query;
     if (typeof camis === "string" && camis.trim()) {
-      setSelected({ camis, name: `Restaurant ${camis}`, address: "", boro: "" });
+      const hit: Hit = {
+        camis,
+        name: typeof name === "string" && name ? name : `Restaurant ${camis}`,
+        address: typeof address === "string" ? address : "",
+        boro: typeof boro === "string" ? boro : "",
+      };
+      setSelected(hit);
+      setQ(toTitleCase(hit.name));
       runScore(camis);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -298,7 +305,7 @@ export default function Home() {
     if (timer.current) clearTimeout(timer.current);
     if (abortRef.current) abortRef.current.abort();
     runScore(h.camis);
-    router.replace({ pathname: router.pathname, query: { ...router.query, camis: h.camis } }, undefined, { shallow: true });
+    router.replace({ pathname: router.pathname, query: { camis: h.camis, name: h.name, address: h.address, boro: h.boro } }, undefined, { shallow: true });
   };
 
   const handleClear = () => {
