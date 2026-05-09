@@ -19,6 +19,11 @@ type ScoreResp = {
   ratinsp_fail_365d_k1?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  score_history?: [string, number][];
+};
+type NbHit = {
+  camis: string; name: string; address: string; boro: string; cuisine: string;
+  last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -65,6 +70,25 @@ function inferGrade(grade?: string | null, points?: number | null): string | nul
 }
 function truncateLabel(s: string, max = 72) {
   return s.length > max ? s.slice(0, max).trimEnd() + "…" : s;
+}
+function formatDate(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  } catch { return iso; }
+}
+function daysAgo(iso?: string | null): string | null {
+  if (!iso) return null;
+  try {
+    const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    const diff = Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / 86400000);
+    if (diff === 0) return "today";
+    if (diff === 1) return "yesterday";
+    if (diff < 30) return `${diff} days ago`;
+    if (diff < 365) return `${Math.round(diff / 30)} months ago`;
+    return `${(diff / 365).toFixed(1)} years ago`;
+  } catch { return null; }
 }
 function ratPressureLabel(x?: number | null) {
   if (x == null) return "Unknown";
@@ -191,6 +215,44 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+function ScoreHistoryChart({ history }: { history: [string, number][] }) {
+  if (history.length < 2) return null;
+  const W = 320, H = 120, PAD = { t: 12, r: 12, b: 28, l: 36 };
+  const xs = history.map((_, i) => PAD.l + (i / (history.length - 1)) * (W - PAD.l - PAD.r));
+  const scores = history.map(([, s]) => s);
+  const minS = Math.min(...scores, 0), maxS = Math.max(...scores, 28);
+  const range = maxS - minS || 1;
+  const yOf = (s: number) => PAD.t + (1 - (s - minS) / range) * (H - PAD.t - PAD.b);
+  const pts = xs.map((x, i) => `${x},${yOf(scores[i])}`).join(" ");
+
+  // grade zone bands
+  const aTop = yOf(13), aBot = yOf(0);
+  const bTop = yOf(27), bBot = yOf(13);
+  const cTop = yOf(maxS), cBot = yOf(27);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} aria-label="Score history chart">
+      {/* grade zone bands */}
+      {aBot > aTop && <rect x={PAD.l} y={aTop} width={W - PAD.l - PAD.r} height={aBot - aTop} fill="#16a34a10" />}
+      {bBot > bTop && <rect x={PAD.l} y={bTop} width={W - PAD.l - PAD.r} height={bBot - bTop} fill="#f59e0b10" />}
+      {cBot > cTop && <rect x={PAD.l} y={cTop} width={W - PAD.l - PAD.r} height={cBot - cTop} fill="#ef444410" />}
+      {/* y-axis labels */}
+      {[0, 13, 27].map(v => (
+        <text key={v} x={PAD.l - 4} y={yOf(v) + 4} textAnchor="end" fontSize={8} fill="#94a3b8">{v}</text>
+      ))}
+      {/* x-axis date labels (first and last) */}
+      <text x={xs[0]} y={H - 4} textAnchor="middle" fontSize={8} fill="#94a3b8">{history[0][0].slice(0, 7)}</text>
+      <text x={xs[xs.length - 1]} y={H - 4} textAnchor="middle" fontSize={8} fill="#94a3b8">{history[history.length - 1][0].slice(0, 7)}</text>
+      {/* line */}
+      <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {/* dots */}
+      {xs.map((x, i) => (
+        <circle key={i} cx={x} cy={yOf(scores[i])} r={3} fill="#3b82f6" />
+      ))}
+    </svg>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
 
@@ -206,6 +268,12 @@ export default function Home() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [nbMode, setNbMode] = useState(false);
+  const [nbZip, setNbZip] = useState("");
+  const [nbResults, setNbResults] = useState<NbHit[]>([]);
+  const [nbLoading, setNbLoading] = useState(false);
+  const [nbErr, setNbErr] = useState<string | null>(null);
+  const nbInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 1800); };
 
@@ -297,6 +365,17 @@ export default function Home() {
     } catch (err: unknown) {
       setScoreErr(getErrorMessage(err));
     } finally { setScoreLoading(false); }
+  };
+
+  const runNeighborhood = async (zip: string) => {
+    if (zip.length !== 5 || !/^\d{5}$/.test(zip)) return;
+    setNbLoading(true); setNbErr(null); setNbResults([]);
+    try {
+      const r = await fetch(`${API_BASE}/neighborhood?zip=${zip}`);
+      if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
+      setNbResults(await r.json() as NbHit[]);
+    } catch (err) { setNbErr(getErrorMessage(err)); }
+    finally { setNbLoading(false); }
   };
 
   const selectHit = (h: Hit) => {
@@ -584,7 +663,9 @@ export default function Home() {
                       ))}
                     </div>
                     <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                      {score.last_inspection_date ? `Inspected ${score.last_inspection_date}` : "No date on record"}
+                      {score.last_inspection_date
+                        ? <>{formatDate(score.last_inspection_date)}<span style={{ color: "#cbd5e1", margin: "0 4px" }}>·</span>{daysAgo(score.last_inspection_date)}</>
+                        : "No date on record"}
                     </div>
                     {score.predicted_points != null && (
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
@@ -641,6 +722,20 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Score history chart */}
+                {score.score_history && score.score_history.length >= 2 && (
+                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Score History</div>
+                    <ScoreHistoryChart history={score.score_history as [string, number][]} />
+                    <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#16a34a20", border: "1px solid #16a34a50", marginRight: 4 }} />A (0–13)</span>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#f59e0b20", border: "1px solid #f59e0b50", marginRight: 4 }} />B (14–27)</span>
+                      <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#ef444420", border: "1px solid #ef444450", marginRight: 4 }} />C (28+)</span>
+                      <span style={{ marginLeft: "auto" }}>{score.score_history.length} inspections</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Violations + map */}
                 <div className={score.latitude != null ? "grid-2col" : ""} style={{ display: "grid", gap: 16 }}>
                   {/* Violations */}
@@ -686,7 +781,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty state: stats + examples */}
+        {/* Empty state: stats + examples + neighborhood */}
         {!selected && !scoreLoading && (
           <div style={{ marginTop: 40 }}>
 
@@ -708,41 +803,154 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Example restaurants */}
-            <div className="examples-header" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
-              <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
+            {/* Mode toggle */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+              <button onClick={() => setNbMode(false)} style={{
+                padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                border: `1px solid ${!nbMode ? "#3b82f6" : "#e2e8f0"}`,
+                background: !nbMode ? "#eff6ff" : "#fff",
+                color: !nbMode ? "#1d4ed8" : "#64748b",
+              }}>Examples</button>
+              <button onClick={() => { setNbMode(true); setTimeout(() => nbInputRef.current?.focus(), 50); }} style={{
+                padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                border: `1px solid ${nbMode ? "#3b82f6" : "#e2e8f0"}`,
+                background: nbMode ? "#eff6ff" : "#fff",
+                color: nbMode ? "#1d4ed8" : "#64748b",
+              }}>By Zip Code</button>
             </div>
-            <div className="grid-examples">
-              {EXAMPLES.map(ex => (
-                <button
-                  key={ex.camis}
-                  onClick={() => selectHit(ex)}
-                  style={{
-                    display: "flex", flexDirection: "column", textAlign: "left",
-                    padding: "16px 18px", background: "#fff",
-                    border: "1px solid #e2e8f0", borderRadius: 14,
-                    cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
-                    <span style={{
-                      fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
-                      background: "#f1f5f9", color: "#475569",
-                      textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600,
-                    }}>{ex.boro}</span>
+
+            {!nbMode && (
+              <>
+                <div className="examples-header" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
+                </div>
+                <div className="grid-examples">
+                  {EXAMPLES.map(ex => (
+                    <button
+                      key={ex.camis}
+                      onClick={() => selectHit(ex)}
+                      style={{
+                        display: "flex", flexDirection: "column", textAlign: "left",
+                        padding: "16px 18px", background: "#fff",
+                        border: "1px solid #e2e8f0", borderRadius: 14,
+                        cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
+                        <span style={{
+                          fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
+                          background: "#f1f5f9", color: "#475569",
+                          textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600,
+                        }}>{ex.boro}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{ex.address}</div>
+                      <div style={{ marginTop: 12, fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>
+                        View risk score →
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {nbMode && (
+              <div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 6 }}>Neighborhood Risk Overview</div>
+                  <div style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>Enter a NYC zip code to see restaurants ranked by inspection risk.</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      ref={nbInputRef}
+                      placeholder="e.g. 10002"
+                      maxLength={5}
+                      value={nbZip}
+                      onChange={e => setNbZip(e.target.value.replace(/\D/g, ""))}
+                      onKeyDown={e => { if (e.key === "Enter") runNeighborhood(nbZip); }}
+                      style={{
+                        flex: 1, padding: "10px 14px", fontSize: 15, borderRadius: 10,
+                        border: "1px solid #e2e8f0", outline: "none", color: "#0f172a",
+                        letterSpacing: "0.1em",
+                      }}
+                      aria-label="Zip code"
+                    />
+                    <button
+                      onClick={() => runNeighborhood(nbZip)}
+                      disabled={nbZip.length !== 5 || nbLoading}
+                      style={{
+                        padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                        background: nbZip.length === 5 ? "#1d4ed8" : "#e2e8f0",
+                        color: nbZip.length === 5 ? "#fff" : "#94a3b8",
+                        border: "none", cursor: nbZip.length === 5 ? "pointer" : "default",
+                      }}
+                    >
+                      {nbLoading ? <Spinner /> : "Search"}
+                    </button>
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{ex.address}</div>
-                  <div style={{ marginTop: 12, fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>
-                    View risk score →
+                </div>
+
+                {nbErr && <div style={{ color: "#ef4444", fontSize: 13 }}>Error: {nbErr}</div>}
+
+                {nbResults.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                      {nbResults.length} restaurants in {nbZip} — sorted by highest inspection score
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {nbResults.map((nb, i) => {
+                        const g = inferGrade(nb.last_grade, nb.last_score);
+                        return (
+                          <button
+                            key={nb.camis}
+                            onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 12, width: "100%",
+                              padding: "12px 14px", background: "#fff",
+                              border: "1px solid #e2e8f0", borderRadius: 12,
+                              cursor: "pointer", textAlign: "left",
+                              transition: "box-shadow 0.12s",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
+                          >
+                            <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontWeight: 800, fontSize: 14,
+                              background: g ? gradeColor(g) + "18" : "#f1f5f9",
+                              color: gradeColor(g),
+                              border: `1px solid ${gradeColor(g)}40`,
+                            }}>{g ?? "—"}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(nb.name)}</div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{nb.cuisine || ""}{nb.cuisine && nb.last_date ? " · " : ""}{nb.last_date ? daysAgo(nb.last_date) : ""}</div>
+                            </div>
+                            {nb.last_score != null && (
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, color: nb.last_score >= 28 ? "#ef4444" : nb.last_score >= 14 ? "#f59e0b" : "#16a34a" }}>{nb.last_score} pts</div>
+                                <div style={{ fontSize: 10, color: "#94a3b8" }}>score</div>
+                              </div>
+                            )}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
+                              <polyline points="9,18 15,12 9,6" />
+                            </svg>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
+                )}
+
+                {!nbLoading && nbResults.length === 0 && nbZip.length === 5 && !nbErr && (
+                  <div style={{ fontSize: 13, color: "#64748b" }}>No restaurants found for zip code {nbZip}.</div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
