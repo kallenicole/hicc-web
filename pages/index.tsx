@@ -64,7 +64,7 @@ function toTitleCase(s: string) {
   return s.toLowerCase().replace(/(?:^|[\s\-\/])\S/g, c => c.toUpperCase());
 }
 function inferGrade(grade?: string | null, points?: number | null): string | null {
-  if (grade) return grade;
+  if (grade === "A" || grade === "B" || grade === "C") return grade;
   if (points == null) return null;
   if (points <= 13) return "A";
   if (points <= 27) return "B";
