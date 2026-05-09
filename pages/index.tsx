@@ -53,6 +53,19 @@ const EXAMPLES = [
 function softNormalize(s: string) {
   return s.replace(/[^a-z0-9\s]/gi, "").replace(/(.)\1{2,}/gi, "$1$1").trim();
 }
+function toTitleCase(s: string) {
+  return s.toLowerCase().replace(/(?:^|[\s\-\/])\S/g, c => c.toUpperCase());
+}
+function inferGrade(grade?: string | null, points?: number | null): string | null {
+  if (grade) return grade;
+  if (points == null) return null;
+  if (points <= 13) return "A";
+  if (points <= 27) return "B";
+  return "C";
+}
+function truncateLabel(s: string, max = 72) {
+  return s.length > max ? s.slice(0, max).trimEnd() + "…" : s;
+}
 function ratPressureLabel(x?: number | null) {
   if (x == null) return "Unknown";
   if (x < 0.2) return "Low";
@@ -424,8 +437,8 @@ export default function Home() {
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h.name}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 1 }}>{h.address}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(h.name)}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 1 }}>{toTitleCase(h.address)}</div>
                     </div>
                     <span style={{
                       fontSize: 10, padding: "2px 8px", borderRadius: 999, flexShrink: 0,
@@ -454,8 +467,8 @@ export default function Home() {
             {selected && (
               <div className="restaurant-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
                 <div>
-                  <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.2 }}>{selected.name}</h1>
-                  {selected.address && <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{selected.address}{selected.boro ? ` · ${selected.boro}` : ""}</div>}
+                  <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.2 }}>{toTitleCase(selected.name)}</h1>
+                  {selected.address && <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{toTitleCase(selected.address)}{selected.boro ? ` · ${selected.boro}` : ""}</div>}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={async () => { const ok = await copyText(deepLink); showToast(ok ? "Link copied!" : "Copy failed"); }}
@@ -527,13 +540,18 @@ export default function Home() {
                   <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Last Inspection</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                      <div style={{
-                        width: 52, height: 52, borderRadius: 10, fontWeight: 800, fontSize: 22,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: score.last_grade ? gradeColor(score.last_grade) + "18" : "#f1f5f9",
-                        color: gradeColor(score.last_grade),
-                        border: `2px solid ${gradeColor(score.last_grade)}40`,
-                      }}>{score.last_grade ?? "—"}</div>
+                      {(() => {
+                        const g = inferGrade(score.last_grade, score.last_points);
+                        return (
+                          <div style={{
+                            width: 52, height: 52, borderRadius: 10, fontWeight: 800, fontSize: 22,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            background: g ? gradeColor(g) + "18" : "#f1f5f9",
+                            color: gradeColor(g),
+                            border: `2px solid ${gradeColor(g)}40`,
+                          }}>{g ?? "—"}</div>
+                        );
+                      })()}
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 24, fontWeight: 700, color: "#0f172a" }}>{score.last_points ?? "—"}</div>
                         <div style={{ fontSize: 11, color: "#94a3b8" }}>points</div>
@@ -604,19 +622,22 @@ export default function Home() {
                     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Likely Next Violations</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {score.top_violation_probs.slice(0, 2).map((v, i) => (
-                          <div key={i}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
-                              <span style={{ fontSize: 13, color: "#334155", flex: 1, lineHeight: 1.3 }}>{v.label}</span>
-                              <span style={{ fontWeight: 700, fontSize: 13, color: riskColor(v.probability), flexShrink: 0 }}>
-                                {(v.probability * 100).toFixed(0)}%
-                              </span>
+                        {score.top_violation_probs.slice(0, 2).map((v, i) => {
+                          const displayProb = Math.min(0.9, v.probability);
+                          return (
+                            <div key={i}>
+                              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
+                                <span style={{ fontSize: 13, color: "#334155", flex: 1, lineHeight: 1.3 }}>{truncateLabel(v.label)}</span>
+                                <span style={{ fontWeight: 700, fontSize: 13, color: riskColor(displayProb), flexShrink: 0 }}>
+                                  {(displayProb * 100).toFixed(0)}%
+                                </span>
+                              </div>
+                              <div style={{ height: 4, background: "#f1f5f9", borderRadius: 999, overflow: "hidden" }}>
+                                <div style={{ width: `${displayProb * 100}%`, height: "100%", background: riskColor(displayProb), borderRadius: 999 }} />
+                              </div>
                             </div>
-                            <div style={{ height: 4, background: "#f1f5f9", borderRadius: 999, overflow: "hidden" }}>
-                              <div style={{ width: `${Math.min(100, v.probability * 100)}%`, height: "100%", background: riskColor(v.probability), borderRadius: 999 }} />
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
