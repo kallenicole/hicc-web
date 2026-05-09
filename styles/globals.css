@@ -26,7 +26,7 @@ button, input, select, textarea { font-family: inherit; color: #111; }
 /* Responsive grids */
 .grid-2col { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
 .grid-stats { display: flex; justify-content: center; gap: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; margin-bottom: 40px; }
-.grid-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.grid-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; }
 
 @media (max-width: 640px) {
   .main-content { padding: 0 16px 60px !important; }
