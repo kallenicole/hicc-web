@@ -557,6 +557,21 @@ export default function Home() {
                         <div style={{ fontSize: 11, color: "#94a3b8" }}>points</div>
                       </div>
                     </div>
+                    {/* Grade scale */}
+                    <div style={{ display: "flex", gap: 0, marginBottom: 14, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0", fontSize: 11 }}>
+                      {(["A", "B", "C"] as const).map((g, i) => (
+                        <div key={g} style={{
+                          flex: 1, textAlign: "center", padding: "5px 4px",
+                          background: inferGrade(score.last_grade, score.last_points) === g ? gradeColor(g) + "18" : "#fafafa",
+                          borderRight: i < 2 ? "1px solid #e2e8f0" : "none",
+                        }}>
+                          <span style={{ fontWeight: 700, color: gradeColor(g) }}>{g}</span>
+                          <span style={{ color: "#94a3b8", marginLeft: 3 }}>
+                            {g === "A" ? "0–13" : g === "B" ? "14–27" : "28+"} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                     <div style={{ fontSize: 12, color: "#94a3b8" }}>
                       {score.last_inspection_date ? `Inspected ${score.last_inspection_date}` : "No date on record"}
                     </div>
