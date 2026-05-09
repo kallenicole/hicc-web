@@ -271,6 +271,7 @@ export default function Home() {
   const [scoreErr, setScoreErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [nbZip, setNbZip] = useState("");
+  const [nbQueriedZip, setNbQueriedZip] = useState<string | null>(null);
   const [nbResults, setNbResults] = useState<NbHit[]>([]);
   const [nbLoading, setNbLoading] = useState(false);
   const [nbErr, setNbErr] = useState<string | null>(null);
@@ -370,7 +371,7 @@ export default function Home() {
 
   const runNeighborhood = async (zip: string) => {
     if (zip.length !== 5 || !/^\d{5}$/.test(zip)) return;
-    setNbLoading(true); setNbErr(null); setNbResults([]);
+    setNbLoading(true); setNbErr(null); setNbResults([]); setNbQueriedZip(zip);
     try {
       const r = await fetch(`${API_BASE}/neighborhood?zip=${zip}`);
       if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
@@ -888,7 +889,7 @@ export default function Home() {
                 </div>
               )}
 
-              {!nbLoading && nbResults.length === 0 && nbZip.length === 5 && !nbErr && (
+              {!nbLoading && nbResults.length === 0 && nbQueriedZip === nbZip && !nbErr && (
                 <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>No restaurants found for zip code {nbZip}.</div>
               )}
             </div>
