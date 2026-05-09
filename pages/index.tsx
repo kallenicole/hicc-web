@@ -142,16 +142,26 @@ function Tooltip({ label, children }: { label: string; children: React.ReactNode
   return (
     <span style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
       onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+      onClick={() => setOpen(o => !o)}>
       {children}
       <span role="tooltip" style={{
-        position: "absolute", bottom: "125%", left: 0,
-        background: "#1e293b", borderRadius: 8, padding: "10px 12px",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-        fontSize: 12, color: "#f1f5f9", whiteSpace: "pre-wrap", maxWidth: 420,
-        lineHeight: 1.5, zIndex: 60,
-        opacity: open ? 1 : 0, pointerEvents: "none", transition: "opacity 120ms ease",
+        position: "fixed",
+        bottom: "auto",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        background: "#1e293b", borderRadius: 12, padding: "16px 18px",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+        fontSize: 13, color: "#f1f5f9", whiteSpace: "pre-wrap",
+        width: "min(420px, 90vw)",
+        lineHeight: 1.6, zIndex: 9998,
+        opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
+        transition: "opacity 150ms ease",
       }}>{label}</span>
+      {open && <span onClick={e => { e.stopPropagation(); setOpen(false); }} style={{
+        position: "fixed", inset: 0, zIndex: 9997,
+      }} />}
     </span>
   );
 }
