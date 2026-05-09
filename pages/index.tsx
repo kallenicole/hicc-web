@@ -291,8 +291,9 @@ export default function Home() {
   const deepLink = useMemo(() => {
     if (!selected) return "";
     const base = typeof window !== "undefined" ? window.location.origin : "";
-    return `${base}${router.pathname}?camis=${encodeURIComponent(selected.camis)}`;
-  }, [selected?.camis, router.pathname]);
+    const q = new URLSearchParams({ camis: selected.camis, name: selected.name, address: selected.address, boro: selected.boro });
+    return `${base}${router.pathname}?${q.toString()}`;
+  }, [selected, router.pathname]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
