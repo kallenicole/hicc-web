@@ -53,6 +53,8 @@ const EXAMPLES = [
   { camis: "50125951", name: "Lucali", address: "575 Henry St", boro: "Brooklyn" },
   { camis: "50152716", name: "Shake Shack", address: "10 Columbus Circle", boro: "Manhattan" },
   { camis: "50088242", name: "Grimaldi's Pizzeria", address: "1 Front St", boro: "Brooklyn" },
+  { camis: "50127492", name: "Famous $1 Pizza", address: "333B Ave of the Americas", boro: "Manhattan" },
+  { camis: "50101068", name: "Joe's Shanghai", address: "9 Pell St", boro: "Manhattan" },
 ];
 
 function softNormalize(s: string) {
@@ -268,7 +270,6 @@ export default function Home() {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [nbMode, setNbMode] = useState(false);
   const [nbZip, setNbZip] = useState("");
   const [nbResults, setNbResults] = useState<NbHit[]>([]);
   const [nbLoading, setNbLoading] = useState(false);
@@ -803,154 +804,132 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Mode toggle */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-              <button onClick={() => setNbMode(false)} style={{
-                padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${!nbMode ? "#3b82f6" : "#e2e8f0"}`,
-                background: !nbMode ? "#eff6ff" : "#fff",
-                color: !nbMode ? "#1d4ed8" : "#64748b",
-              }}>Examples</button>
-              <button onClick={() => { setNbMode(true); setTimeout(() => nbInputRef.current?.focus(), 50); }} style={{
-                padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                border: `1px solid ${nbMode ? "#3b82f6" : "#e2e8f0"}`,
-                background: nbMode ? "#eff6ff" : "#fff",
-                color: nbMode ? "#1d4ed8" : "#64748b",
-              }}>By Zip Code</button>
+            {/* Zip code neighborhood search */}
+            <div style={{ marginBottom: 40 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 6 }}>Browse by zip code</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>See all restaurants in a NYC zip code ranked by inspection risk.</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  ref={nbInputRef}
+                  placeholder="e.g. 10002"
+                  maxLength={5}
+                  value={nbZip}
+                  onChange={e => setNbZip(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={e => { if (e.key === "Enter") runNeighborhood(nbZip); }}
+                  style={{
+                    flex: 1, padding: "10px 14px", fontSize: 15, borderRadius: 10,
+                    border: "1px solid #e2e8f0", outline: "none", color: "#0f172a",
+                    letterSpacing: "0.1em",
+                  }}
+                  aria-label="Zip code"
+                />
+                <button
+                  onClick={() => runNeighborhood(nbZip)}
+                  disabled={nbZip.length !== 5 || nbLoading}
+                  style={{
+                    padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600,
+                    background: nbZip.length === 5 ? "#1d4ed8" : "#e2e8f0",
+                    color: nbZip.length === 5 ? "#fff" : "#94a3b8",
+                    border: "none", cursor: nbZip.length === 5 ? "pointer" : "default",
+                  }}
+                >
+                  {nbLoading ? <Spinner /> : "Search"}
+                </button>
+              </div>
+
+              {nbErr && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 13 }}>Error: {nbErr}</div>}
+
+              {nbResults.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                    {nbResults.length} restaurants in {nbZip} — sorted by highest inspection score
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {nbResults.map((nb, i) => {
+                      const g = inferGrade(nb.last_grade, nb.last_score);
+                      return (
+                        <button
+                          key={nb.camis}
+                          onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 12, width: "100%",
+                            padding: "12px 14px", background: "#fff",
+                            border: "1px solid #e2e8f0", borderRadius: 12,
+                            cursor: "pointer", textAlign: "left",
+                            transition: "box-shadow 0.12s",
+                          }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
+                        >
+                          <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontWeight: 800, fontSize: 14,
+                            background: g ? gradeColor(g) + "18" : "#f1f5f9",
+                            color: gradeColor(g),
+                            border: `1px solid ${gradeColor(g)}40`,
+                          }}>{g ?? "—"}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(nb.name)}</div>
+                            <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{nb.cuisine || ""}{nb.cuisine && nb.last_date ? " · " : ""}{nb.last_date ? daysAgo(nb.last_date) : ""}</div>
+                          </div>
+                          {nb.last_score != null && (
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 14, color: nb.last_score >= 28 ? "#ef4444" : nb.last_score >= 14 ? "#f59e0b" : "#16a34a" }}>{nb.last_score} pts</div>
+                              <div style={{ fontSize: 10, color: "#94a3b8" }}>score</div>
+                            </div>
+                          )}
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
+                            <polyline points="9,18 15,12 9,6" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!nbLoading && nbResults.length === 0 && nbZip.length === 5 && !nbErr && (
+                <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>No restaurants found for zip code {nbZip}.</div>
+              )}
             </div>
 
-            {!nbMode && (
-              <>
-                <div className="examples-header" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
-                  <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
-                </div>
-                <div className="grid-examples">
-                  {EXAMPLES.map(ex => (
-                    <button
-                      key={ex.camis}
-                      onClick={() => selectHit(ex)}
-                      style={{
-                        display: "flex", flexDirection: "column", textAlign: "left",
-                        padding: "16px 18px", background: "#fff",
-                        border: "1px solid #e2e8f0", borderRadius: 14,
-                        cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
-                    >
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
-                        <span style={{
-                          fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
-                          background: "#f1f5f9", color: "#475569",
-                          textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600,
-                        }}>{ex.boro}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{ex.address}</div>
-                      <div style={{ marginTop: 12, fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>
-                        View risk score →
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {nbMode && (
-              <div>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 6 }}>Neighborhood Risk Overview</div>
-                  <div style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>Enter a NYC zip code to see restaurants ranked by inspection risk.</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      ref={nbInputRef}
-                      placeholder="e.g. 10002"
-                      maxLength={5}
-                      value={nbZip}
-                      onChange={e => setNbZip(e.target.value.replace(/\D/g, ""))}
-                      onKeyDown={e => { if (e.key === "Enter") runNeighborhood(nbZip); }}
-                      style={{
-                        flex: 1, padding: "10px 14px", fontSize: 15, borderRadius: 10,
-                        border: "1px solid #e2e8f0", outline: "none", color: "#0f172a",
-                        letterSpacing: "0.1em",
-                      }}
-                      aria-label="Zip code"
-                    />
-                    <button
-                      onClick={() => runNeighborhood(nbZip)}
-                      disabled={nbZip.length !== 5 || nbLoading}
-                      style={{
-                        padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600,
-                        background: nbZip.length === 5 ? "#1d4ed8" : "#e2e8f0",
-                        color: nbZip.length === 5 ? "#fff" : "#94a3b8",
-                        border: "none", cursor: nbZip.length === 5 ? "pointer" : "default",
-                      }}
-                    >
-                      {nbLoading ? <Spinner /> : "Search"}
-                    </button>
+            {/* Example restaurants — always visible */}
+            <div className="examples-header" style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>Try an example</div>
+              <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
+            </div>
+            <div className="grid-examples">
+              {EXAMPLES.map(ex => (
+                <button
+                  key={ex.camis}
+                  onClick={() => selectHit(ex)}
+                  style={{
+                    display: "flex", flexDirection: "column", textAlign: "left",
+                    padding: "16px 18px", background: "#fff",
+                    border: "1px solid #e2e8f0", borderRadius: 14,
+                    cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#cbd5e1"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
+                    <span style={{
+                      fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
+                      background: "#f1f5f9", color: "#475569",
+                      textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 600,
+                    }}>{ex.boro}</span>
                   </div>
-                </div>
-
-                {nbErr && <div style={{ color: "#ef4444", fontSize: 13 }}>Error: {nbErr}</div>}
-
-                {nbResults.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
-                      {nbResults.length} restaurants in {nbZip} — sorted by highest inspection score
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {nbResults.map((nb, i) => {
-                        const g = inferGrade(nb.last_grade, nb.last_score);
-                        return (
-                          <button
-                            key={nb.camis}
-                            onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 12, width: "100%",
-                              padding: "12px 14px", background: "#fff",
-                              border: "1px solid #e2e8f0", borderRadius: 12,
-                              cursor: "pointer", textAlign: "left",
-                              transition: "box-shadow 0.12s",
-                            }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
-                          >
-                            <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                            <div style={{
-                              width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 800, fontSize: 14,
-                              background: g ? gradeColor(g) + "18" : "#f1f5f9",
-                              color: gradeColor(g),
-                              border: `1px solid ${gradeColor(g)}40`,
-                            }}>{g ?? "—"}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(nb.name)}</div>
-                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{nb.cuisine || ""}{nb.cuisine && nb.last_date ? " · " : ""}{nb.last_date ? daysAgo(nb.last_date) : ""}</div>
-                            </div>
-                            {nb.last_score != null && (
-                              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontWeight: 700, fontSize: 14, color: nb.last_score >= 28 ? "#ef4444" : nb.last_score >= 14 ? "#f59e0b" : "#16a34a" }}>{nb.last_score} pts</div>
-                                <div style={{ fontSize: 10, color: "#94a3b8" }}>score</div>
-                              </div>
-                            )}
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
-                              <polyline points="9,18 15,12 9,6" />
-                            </svg>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{ex.address}</div>
+                  <div style={{ marginTop: 12, fontSize: 12, color: "#3b82f6", fontWeight: 600 }}>
+                    View risk score →
                   </div>
-                )}
-
-                {!nbLoading && nbResults.length === 0 && nbZip.length === 5 && !nbErr && (
-                  <div style={{ fontSize: 13, color: "#64748b" }}>No restaurants found for zip code {nbZip}.</div>
-                )}
-              </div>
-            )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </main>
