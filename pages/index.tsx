@@ -44,10 +44,10 @@ function DineSafeLogo() {
 }
 
 const EXAMPLES = [
-  { camis: "50117047", name: "$1 Pizza", address: "333B Avenue of the Americas", boro: "Manhattan" },
-  { camis: "41311152", name: "Katz's Delicatessen", address: "205 E Houston St", boro: "Manhattan" },
-  { camis: "50071959", name: "Lucali", address: "575 Henry St", boro: "Brooklyn" },
-  { camis: "40363380", name: "Joe's Shanghai", address: "9 Pell St", boro: "Manhattan" },
+  { camis: "40732665", name: "Katz's Delicatessen", address: "205 E Houston St", boro: "Manhattan" },
+  { camis: "50125951", name: "Lucali", address: "575 Henry St", boro: "Brooklyn" },
+  { camis: "50152716", name: "Shake Shack", address: "10 Columbus Circle", boro: "Manhattan" },
+  { camis: "50088242", name: "Grimaldi's Pizzeria", address: "1 Front St", boro: "Brooklyn" },
 ];
 
 function softNormalize(s: string) {
