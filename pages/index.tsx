@@ -55,14 +55,31 @@ function DineSafeLogo() {
   );
 }
 
-const EXAMPLES = [
+const EXAMPLE_POOL = [
   { camis: "40732665", name: "Katz's Delicatessen", address: "205 E Houston St", boro: "Manhattan" },
   { camis: "50125951", name: "Lucali", address: "575 Henry St", boro: "Brooklyn" },
   { camis: "50152716", name: "Shake Shack", address: "10 Columbus Circle", boro: "Manhattan" },
   { camis: "50088242", name: "Grimaldi's Pizzeria", address: "1 Front St", boro: "Brooklyn" },
   { camis: "50127492", name: "Famous $1 Pizza", address: "333B Ave of the Americas", boro: "Manhattan" },
   { camis: "50101068", name: "Joe's Shanghai", address: "9 Pell St", boro: "Manhattan" },
+  { camis: "40364335", name: "Peter Luger Steakhouse", address: "178 Broadway", boro: "Brooklyn" },
+  { camis: "40841272", name: "Sylvia's Restaurant", address: "328 Lenox Ave", boro: "Manhattan" },
+  { camis: "50000923", name: "Di Fara Pizzeria", address: "1424 Avenue J", boro: "Brooklyn" },
+  { camis: "50012258", name: "The Halal Guys", address: "307 E 14th St", boro: "Manhattan" },
+  { camis: "41718160", name: "Carbone", address: "181 Thompson St", boro: "Manhattan" },
+  { camis: "50162845", name: "Keens Steakhouse", address: "72 W 36th St", boro: "Manhattan" },
+  { camis: "40383464", name: "Le Bernardin", address: "155 W 51st St", boro: "Manhattan" },
+  { camis: "41626762", name: "Eleven Madison Park", address: "11 Madison Ave", boro: "Manhattan" },
+  { camis: "41664978", name: "Gramercy Tavern", address: "42 E 20th St", boro: "Manhattan" },
+  { camis: "40574871", name: "Balthazar", address: "80 Spring St", boro: "Manhattan" },
+  { camis: "40384528", name: "Veselka", address: "144 Second Ave", boro: "Manhattan" },
+  { camis: "40563475", name: "Mamoun's Falafel", address: "119 Macdougal St", boro: "Manhattan" },
+  { camis: "50060822", name: "Nobu", address: "195 Broadway", boro: "Manhattan" },
 ];
+function pickExamples(pool: typeof EXAMPLE_POOL, n = 6) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
 
 function softNormalize(s: string) {
   return s.replace(/[^a-z0-9\s]/gi, "").replace(/(.)\1{2,}/gi, "$1$1").trim();
@@ -299,6 +316,7 @@ export default function Home() {
   const [nbErr, setNbErr] = useState<string | null>(null);
   const nbInputRef = useRef<HTMLInputElement>(null);
   const [insights, setInsights] = useState<NycInsights | null>(null);
+  const [examples] = useState(() => pickExamples(EXAMPLE_POOL));
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 1800); };
 
@@ -1033,7 +1051,7 @@ export default function Home() {
               <div style={{ fontSize: 12, color: "#94a3b8" }}>Click any restaurant to see its risk score</div>
             </div>
             <div className="grid-examples">
-              {EXAMPLES.map(ex => (
+              {examples.map(ex => (
                 <button
                   key={ex.camis}
                   onClick={() => selectHit(ex)}
