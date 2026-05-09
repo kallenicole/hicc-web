@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 
 type Hit = { camis: string; name: string; address: string; boro: string };
 type ViolationProb = { code: string; probability: number; label: string };
+type LastViolation = { code: string; description: string; critical: boolean };
 type ScoreResp = {
   camis: string;
   prob_bc: number;
@@ -20,6 +21,7 @@ type ScoreResp = {
   latitude?: number | null;
   longitude?: number | null;
   score_history?: [string, number][];
+  last_violations?: LastViolation[];
 };
 type NbHit = {
   camis: string; name: string; address: string; boro: string; cuisine: string;
@@ -736,7 +738,36 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Violations + map */}
+                {/* Last inspection violations */}
+                {score.last_violations && score.last_violations.length > 0 && (
+                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>
+                      Last Inspection Violations
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {score.last_violations.map((v) => (
+                        <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <span style={{
+                            flexShrink: 0, marginTop: 1,
+                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999,
+                            background: v.critical ? "#fef2f2" : "#f8fafc",
+                            color: v.critical ? "#dc2626" : "#64748b",
+                            border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
+                            whiteSpace: "nowrap",
+                          }}>
+                            {v.critical ? "Critical" : "Not Critical"}
+                          </span>
+                          <div>
+                            <span style={{ fontSize: 13, color: "#334155", lineHeight: 1.4 }}>{v.description}</span>
+                            <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: 6 }}>{v.code}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Predicted violations + map */}
                 <div className={score.latitude != null ? "grid-2col" : ""} style={{ display: "grid", gap: 16 }}>
                   {/* Violations */}
                   {score.top_violation_probs && score.top_violation_probs.length > 0 && (
