@@ -101,7 +101,8 @@ function daysAgo(iso?: string | null): string | null {
     if (diff === 0) return "today";
     if (diff === 1) return "yesterday";
     if (diff < 30) return `${diff} days ago`;
-    if (diff < 365) return `${Math.round(diff / 30)} months ago`;
+    const months = Math.round(diff / 30);
+    if (diff < 365) return `${months} ${months === 1 ? "month" : "months"} ago`;
     return `${(diff / 365).toFixed(1)} years ago`;
   } catch { return null; }
 }
