@@ -306,6 +306,13 @@ export default function Home() {
     setDropdownOpen(false); setHighlighted(-1);
     inputRef.current?.focus();
   };
+  const handleHome = () => {
+    setQ(""); setHits([]); setSelected(null); setScore(null); setScoreErr(null);
+    setDropdownOpen(false); setHighlighted(-1);
+    const { camis, ...rest } = router.query;
+    void camis;
+    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+  };
 
   const onInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === "Escape") { setDropdownOpen(false); return; }
@@ -326,7 +333,7 @@ export default function Home() {
       {/* Header */}
       <header style={{ background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button onClick={handleClear} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <button onClick={handleHome} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             <DineSafeLogo />
             <div style={{ textAlign: "left" }}>
               <div style={{ fontWeight: 700, fontSize: "1rem", color: "#f8fafc", letterSpacing: "-0.01em" }}>DineSafe NYC</div>
