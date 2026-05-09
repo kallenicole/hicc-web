@@ -507,33 +507,40 @@ export default function Home() {
 
                 {/* Rat pressure */}
                 <div className="rat-bar" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                  <Tooltip label={dedent(`
-                    Local Rat Pressure combines two signals near the restaurant (≈150–200m cell):
-                    • 311 rodent complaints in the last 180 days
-                    • DOHMH rat inspection failures in the last 365 days
-                    Normalized into a 0–1 index.
-                    Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8
-                  `)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "default" }}>
-                      <span style={{ fontSize: 24 }}>🐀</span>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Local Rat Pressure</div>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: ratPressureColor(score.rat_index) }}>
-                          {ratPressureLabel(score.rat_index)}
-                          <InfoIcon style={{ color: "#cbd5e1", marginLeft: 5, verticalAlign: "middle" }} />
-                        </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 24 }}>🐀</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Local Rat Pressure</div>
+                      <div style={{ fontWeight: 700, fontSize: 18, color: ratPressureColor(score.rat_index) }}>
+                        {ratPressureLabel(score.rat_index)}
                       </div>
                     </div>
-                  </Tooltip>
+                  </div>
                   <div className="rat-stats" style={{ display: "flex", gap: 20, marginLeft: "auto", flexWrap: "wrap" }}>
                     {[
-                      { label: "Rat index", value: score.rat_index != null ? score.rat_index.toFixed(2) : "—" },
-                      { label: "311 (180d)", value: score.rat311_cnt_180d_k1 ?? "—" },
-                      { label: "Fails (365d)", value: score.ratinsp_fail_365d_k1 ?? "—" },
+                      {
+                        label: "Rat index",
+                        value: score.rat_index != null ? score.rat_index.toFixed(2) : "—",
+                        tooltip: "Composite 0–1 score combining 311 complaints and inspection failures, normalized by quantile.\nLow <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8",
+                      },
+                      {
+                        label: "311 complaints",
+                        value: score.rat311_cnt_180d_k1 ?? "—",
+                        tooltip: "Number of 311 'Rodent' complaints filed within ≈150–200m of this restaurant in the last 180 days.",
+                      },
+                      {
+                        label: "Rat insp. fails",
+                        value: score.ratinsp_fail_365d_k1 ?? "—",
+                        tooltip: "Number of failed DOHMH rat inspections within ≈150–200m of this restaurant in the last 365 days.",
+                      },
                     ].map(stat => (
                       <div key={stat.label} style={{ textAlign: "center" }}>
                         <div style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>{stat.value}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{stat.label}</div>
+                        <Tooltip label={stat.tooltip}>
+                          <div style={{ fontSize: 11, color: "#94a3b8", display: "inline-flex", alignItems: "center", gap: 3, cursor: "default" }}>
+                            {stat.label} <InfoIcon style={{ color: "#cbd5e1" }} />
+                          </div>
+                        </Tooltip>
                       </div>
                     ))}
                   </div>
