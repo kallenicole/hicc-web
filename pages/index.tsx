@@ -475,13 +475,11 @@ export default function Home() {
                           style={{
                             display: "block", width: "100%", textAlign: "left",
                             padding: "11px 14px",
-                            borderBottom: "1px solid #f1f5f9",
                             background: isSelected ? "#eff6ff" : active ? "#f8fafc" : "#fff",
                             cursor: "pointer",
-                            borderLeft: isSelected ? "3px solid #3b82f6" : "3px solid transparent",
-                            transition: "background 0.1s",
-                            border: "none",
+                            borderTop: "none", borderRight: "none", borderLeft: isSelected ? "3px solid #3b82f6" : "3px solid transparent",
                             borderBottom: "1px solid #f1f5f9",
+                            transition: "background 0.1s",
                             outline: active ? "2px solid #93c5fd" : "none",
                             outlineOffset: -2,
                           }}
