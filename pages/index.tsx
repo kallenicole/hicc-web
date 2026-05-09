@@ -243,8 +243,8 @@ function ScoreHistoryChart({ history }: { history: [string, number][] }) {
         <text key={v} x={PAD.l - 4} y={yOf(v) + 4} textAnchor="end" fontSize={8} fill="#94a3b8">{v}</text>
       ))}
       {/* x-axis date labels (first and last) */}
-      <text x={xs[0]} y={H - 4} textAnchor="middle" fontSize={8} fill="#94a3b8">{history[0][0].slice(0, 7)}</text>
-      <text x={xs[xs.length - 1]} y={H - 4} textAnchor="middle" fontSize={8} fill="#94a3b8">{history[history.length - 1][0].slice(0, 7)}</text>
+      <text x={xs[0]} y={H - 4} textAnchor="start" fontSize={8} fill="#94a3b8">{history[0][0].slice(0, 7)}</text>
+      <text x={xs[xs.length - 1]} y={H - 4} textAnchor="end" fontSize={8} fill="#94a3b8">{history[history.length - 1][0].slice(0, 7)}</text>
       {/* line */}
       <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {/* dots */}
