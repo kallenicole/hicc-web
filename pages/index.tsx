@@ -422,6 +422,7 @@ export default function Home() {
   const abortRef = useRef<AbortController | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const suppressSearch = useRef(false);
+  const suppressRouteEffect = useRef(false);
 
   const deepLink = useMemo(() => {
     if (!selected) return "";
@@ -477,6 +478,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!router.isReady) return;
+    if (suppressRouteEffect.current) { suppressRouteEffect.current = false; return; }
     const { camis, name, address, boro } = router.query;
     if (typeof camis === "string" && camis.trim()) {
       const hit: Hit = {
@@ -489,9 +491,15 @@ export default function Home() {
       setSelected(hit);
       setQ(toTitleCase(hit.name));
       runScore(camis);
+    } else {
+      setSelected(null);
+      setScore(null);
+      setScoreErr(null);
+      setQ("");
+      setHits([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady]);
+  }, [router.isReady, router.query]);
 
   useEffect(() => {
     if (!API_BASE) return;
@@ -531,11 +539,12 @@ export default function Home() {
 
   const selectHit = (h: Hit) => {
     suppressSearch.current = true;
+    suppressRouteEffect.current = true;
     setSelected(h); setQ(toTitleCase(h.name)); setDropdownOpen(false); setHits([]);
     if (timer.current) clearTimeout(timer.current);
     if (abortRef.current) abortRef.current.abort();
     runScore(h.camis);
-    router.replace({ pathname: router.pathname, query: { camis: h.camis, name: h.name, address: h.address, boro: h.boro } }, undefined, { shallow: true });
+    router.push({ pathname: router.pathname, query: { camis: h.camis, name: h.name, address: h.address, boro: h.boro } }, undefined, { shallow: true });
   };
 
   const handleClear = () => {
@@ -544,6 +553,7 @@ export default function Home() {
     inputRef.current?.focus();
   };
   const handleHome = () => {
+    suppressRouteEffect.current = true;
     setQ(""); setHits([]); setSelected(null); setScore(null); setScoreErr(null);
     setDropdownOpen(false); setHighlighted(-1);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
