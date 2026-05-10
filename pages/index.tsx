@@ -28,9 +28,11 @@ type NbHit = {
   camis: string; name: string; address: string; boro: string; cuisine: string;
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
+type TopViolation = { code: string; description: string; critical: boolean; restaurant_count: number };
 type NycInsights = {
   total_restaurants: number;
   grade_counts: { A: number; B: number; C: number; ungraded: number };
+  top_violations?: TopViolation[];
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -1039,6 +1041,34 @@ export default function Home() {
                   );
                 })()}
 
+                {insights.top_violations && insights.top_violations.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
+                      Most common violations · latest inspection per restaurant
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {insights.top_violations.map((v) => (
+                        <div key={v.code} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{
+                            flexShrink: 0, fontSize: 10, fontWeight: 700,
+                            padding: "2px 7px", borderRadius: 999,
+                            background: v.critical ? "#fef2f2" : "#f8fafc",
+                            color: v.critical ? "#dc2626" : "#64748b",
+                            border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
+                            whiteSpace: "nowrap",
+                          }}>
+                            {v.critical ? "Critical" : "Not Critical"}
+                          </span>
+                          <span style={{ flex: 1, fontSize: 13, color: "#334155", minWidth: 0 }}>{v.description}</span>
+                          <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                            {v.restaurant_count.toLocaleString()}
+                            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400, marginLeft: 3 }}>restaurants</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
