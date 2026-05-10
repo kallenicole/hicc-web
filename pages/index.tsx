@@ -29,10 +29,12 @@ type NbHit = {
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
 type TopViolation = { code: string; description: string; critical: boolean; restaurant_count: number };
+type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number } };
 type NycInsights = {
   total_restaurants: number;
   grade_counts: { A: number; B: number; C: number; ungraded: number };
   top_violations?: TopViolation[];
+  borough_stats?: BoroughStat[];
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
@@ -404,6 +406,7 @@ export default function Home() {
   const [nbResults, setNbResults] = useState<NbHit[]>([]);
   const [nbLoading, setNbLoading] = useState(false);
   const [nbErr, setNbErr] = useState<string | null>(null);
+  const [nbCuisineFilter, setNbCuisineFilter] = useState<string | null>(null);
   const nbInputRef = useRef<HTMLInputElement>(null);
   const [insights, setInsights] = useState<NycInsights | null>(null);
   const [examples] = useState(() => pickExamples(EXAMPLE_POOL));
@@ -514,7 +517,7 @@ export default function Home() {
 
   const runNeighborhood = async (zip: string) => {
     if (zip.length !== 5 || !/^\d{5}$/.test(zip)) return;
-    setNbLoading(true); setNbErr(null); setNbResults([]); setNbQueriedZip(zip);
+    setNbLoading(true); setNbErr(null); setNbResults([]); setNbQueriedZip(zip); setNbCuisineFilter(null);
     try {
       const r = await fetch(`${API_BASE}/neighborhood?zip=${zip}`);
       if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
@@ -790,7 +793,22 @@ export default function Home() {
 
                   {/* Last inspection */}
                   <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Last Inspection</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Last Inspection</span>
+                      {(() => {
+                        if (!score.last_inspection_date) return null;
+                        const [y, m, d] = score.last_inspection_date.slice(0, 10).split("-").map(Number);
+                        const days = Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / 86400000);
+                        if (days > 30) return null;
+                        return (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: "#f0fdf4", color: "#15803d",
+                            border: "1px solid #bbf7d0",
+                          }}>Recently inspected</span>
+                        );
+                      })()}
+                    </div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                       {(() => {
                         const g = inferGrade(score.last_grade, score.last_points);
@@ -1041,6 +1059,33 @@ export default function Home() {
                   );
                 })()}
 
+                {insights.borough_stats && insights.borough_stats.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
+                      By borough
+                    </div>
+                    <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                      {/* header */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8" }} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>Avg pts</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", textAlign: "center" }}>A</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textAlign: "center" }}>B</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textAlign: "center" }}>C</span>
+                      </div>
+                      {insights.borough_stats.map(b => (
+                        <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
+                          <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
+                          <span style={{ fontSize: 12, color: "#16a34a", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.A / b.total) * 100).toFixed(0)}%</span>
+                          <span style={{ fontSize: 12, color: "#f59e0b", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.B / b.total) * 100).toFixed(0)}%</span>
+                          <span style={{ fontSize: 12, color: "#ef4444", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.C / b.total) * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {insights.top_violations && insights.top_violations.length > 0 && (
                   <div style={{ marginTop: 16 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
@@ -1107,56 +1152,84 @@ export default function Home() {
 
               {nbErr && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 13 }}>Error: {nbErr}</div>}
 
-              {nbResults.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
-                    {nbResults.length} restaurants in {nbZip} — sorted by highest inspection score
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {nbResults.map((nb, i) => {
-                      const g = inferGrade(nb.last_grade, nb.last_score);
-                      return (
+              {nbResults.length > 0 && (() => {
+                const cuisines = Array.from(new Set(nbResults.map(r => r.cuisine).filter(Boolean))).sort() as string[];
+                const filtered = nbCuisineFilter ? nbResults.filter(r => r.cuisine === nbCuisineFilter) : nbResults;
+                return (
+                  <div style={{ marginTop: 16 }}>
+                    {cuisines.length > 1 && (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                         <button
-                          key={nb.camis}
-                          onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
+                          onClick={() => setNbCuisineFilter(null)}
                           style={{
-                            display: "flex", alignItems: "center", gap: 12, width: "100%",
-                            padding: "12px 14px", background: "#fff",
-                            border: "1px solid #e2e8f0", borderRadius: 12,
-                            cursor: "pointer", textAlign: "left",
-                            transition: "box-shadow 0.12s",
-                          }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
-                        >
-                          <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontWeight: 800, fontSize: 14,
-                            background: g ? gradeColor(g) + "18" : "#f1f5f9",
-                            color: gradeColor(g),
-                            border: `1px solid ${gradeColor(g)}40`,
-                          }}>{g ?? "—"}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(nb.name)}</div>
-                            <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{nb.cuisine || ""}{nb.cuisine && nb.last_date ? " · " : ""}{nb.last_date ? daysAgo(nb.last_date) : ""}</div>
-                          </div>
-                          {nb.last_score != null && (
-                            <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              <div style={{ fontWeight: 700, fontSize: 14, color: nb.last_score >= 28 ? "#ef4444" : nb.last_score >= 14 ? "#f59e0b" : "#16a34a" }}>{nb.last_score} pts</div>
-                              <div style={{ fontSize: 10, color: "#94a3b8" }}>score</div>
+                            fontSize: 12, padding: "3px 10px", borderRadius: 999, border: "1px solid",
+                            borderColor: nbCuisineFilter === null ? "#1d4ed8" : "#e2e8f0",
+                            background: nbCuisineFilter === null ? "#eff6ff" : "#fff",
+                            color: nbCuisineFilter === null ? "#1d4ed8" : "#64748b",
+                            cursor: "pointer", fontWeight: 500,
+                          }}>All</button>
+                        {cuisines.map(c => (
+                          <button key={c}
+                            onClick={() => setNbCuisineFilter(nbCuisineFilter === c ? null : c)}
+                            style={{
+                              fontSize: 12, padding: "3px 10px", borderRadius: 999, border: "1px solid",
+                              borderColor: nbCuisineFilter === c ? "#1d4ed8" : "#e2e8f0",
+                              background: nbCuisineFilter === c ? "#eff6ff" : "#fff",
+                              color: nbCuisineFilter === c ? "#1d4ed8" : "#64748b",
+                              cursor: "pointer", fontWeight: 500,
+                            }}>{toTitleCase(c)}</button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                      {filtered.length} restaurant{filtered.length !== 1 ? "s" : ""} in {nbZip}{nbCuisineFilter ? ` · ${toTitleCase(nbCuisineFilter)}` : ""} — sorted by highest inspection score
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {filtered.map((nb, i) => {
+                        const g = inferGrade(nb.last_grade, nb.last_score);
+                        return (
+                          <button
+                            key={nb.camis}
+                            onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 12, width: "100%",
+                              padding: "12px 14px", background: "#fff",
+                              border: "1px solid #e2e8f0", borderRadius: 12,
+                              cursor: "pointer", textAlign: "left",
+                              transition: "box-shadow 0.12s",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
+                          >
+                            <span style={{ fontSize: 12, color: "#94a3b8", width: 20, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontWeight: 800, fontSize: 14,
+                              background: g ? gradeColor(g) + "18" : "#f1f5f9",
+                              color: gradeColor(g),
+                              border: `1px solid ${gradeColor(g)}40`,
+                            }}>{g ?? "—"}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{toTitleCase(nb.name)}</div>
+                              <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{nb.cuisine || ""}{nb.cuisine && nb.last_date ? " · " : ""}{nb.last_date ? daysAgo(nb.last_date) : ""}</div>
                             </div>
-                          )}
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
-                            <polyline points="9,18 15,12 9,6" />
-                          </svg>
-                        </button>
-                      );
-                    })}
+                            {nb.last_score != null && (
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 14, color: nb.last_score >= 28 ? "#ef4444" : nb.last_score >= 14 ? "#f59e0b" : "#16a34a" }}>{nb.last_score} pts</div>
+                                <div style={{ fontSize: 10, color: "#94a3b8" }}>score</div>
+                              </div>
+                            )}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" aria-hidden style={{ flexShrink: 0 }}>
+                              <polyline points="9,18 15,12 9,6" />
+                            </svg>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {!nbLoading && nbResults.length === 0 && nbQueriedZip === nbZip && !nbErr && (
                 <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>No restaurants found for zip code {nbZip}.</div>
