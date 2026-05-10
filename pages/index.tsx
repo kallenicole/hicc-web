@@ -1021,99 +1021,104 @@ export default function Home() {
             {/* NYC at a Glance */}
             {insights && (
               <div style={{ marginBottom: 40 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 6 }}>NYC at a Glance</div>
-                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>
-                  Grade distribution across {insights.total_restaurants.toLocaleString()} restaurants · Latest inspection per restaurant
+                {/* Section header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                  <div style={{ width: 3, borderRadius: 2, alignSelf: "stretch", background: "#1d4ed8" }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>NYC at a Glance</div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 1 }}>
+                      {insights.total_restaurants.toLocaleString()} restaurants · latest inspection per restaurant
+                    </div>
+                  </div>
                 </div>
 
-                {/* Grade distribution bar */}
-                {(() => {
-                  const total = insights.total_restaurants;
-                  const grades = [
-                    { key: "A", label: "A", color: "#16a34a", count: insights.grade_counts.A },
-                    { key: "B", label: "B", color: "#f59e0b", count: insights.grade_counts.B },
-                    { key: "C", label: "C", color: "#ef4444", count: insights.grade_counts.C },
-                    { key: "ungraded", label: "Pending", color: "#94a3b8", count: insights.grade_counts.ungraded },
-                  ];
-                  return (
-                    <div style={{ marginBottom: 20 }}>
-                      <div style={{ display: "flex", height: 28, borderRadius: 8, overflow: "hidden", gap: 2 }}>
-                        {grades.map(g => {
-                          const pct = (g.count / total) * 100;
-                          if (pct < 0.5) return null;
-                          return (
-                            <div key={g.key} style={{ flex: pct, background: g.color, minWidth: 0 }} title={`${g.label}: ${g.count.toLocaleString()} (${pct.toFixed(1)}%)`} />
-                          );
-                        })}
+                <div style={{ display: "grid", gap: 12 }}>
+                  {/* Card 1: Grade distribution + borough breakdown */}
+                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 12 }}>Grade distribution</div>
+                    {(() => {
+                      const total = insights.total_restaurants;
+                      const grades = [
+                        { key: "A", label: "A", color: "#16a34a", count: insights.grade_counts.A },
+                        { key: "B", label: "B", color: "#f59e0b", count: insights.grade_counts.B },
+                        { key: "C", label: "C", color: "#ef4444", count: insights.grade_counts.C },
+                        { key: "ungraded", label: "Pending", color: "#94a3b8", count: insights.grade_counts.ungraded },
+                      ];
+                      return (
+                        <>
+                          <div style={{ display: "flex", height: 24, borderRadius: 6, overflow: "hidden", gap: 2 }}>
+                            {grades.map(g => {
+                              const pct = (g.count / total) * 100;
+                              if (pct < 0.5) return null;
+                              return <div key={g.key} style={{ flex: pct, background: g.color, minWidth: 0 }} title={`${g.label}: ${g.count.toLocaleString()} (${pct.toFixed(1)}%)`} />;
+                            })}
+                          </div>
+                          <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
+                            {grades.map(g => (
+                              <div key={g.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                <span style={{ width: 9, height: 9, borderRadius: 2, background: g.color, flexShrink: 0, display: "inline-block" }} />
+                                <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>{g.label}</span>
+                                <span style={{ fontSize: 12, color: "#94a3b8" }}>{g.count.toLocaleString()} ({((g.count / total) * 100).toFixed(1)}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    {insights.borough_stats && insights.borough_stats.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>By borough</div>
+                        <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
+                            <span />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>Avg pts</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", textAlign: "center" }}>A</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textAlign: "center" }}>B</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textAlign: "center" }}>C</span>
+                          </div>
+                          {insights.borough_stats.map(b => (
+                            <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
+                              <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
+                              <span style={{ fontSize: 12, color: "#16a34a", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.A / b.total) * 100).toFixed(0)}%</span>
+                              <span style={{ fontSize: 12, color: "#f59e0b", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.B / b.total) * 100).toFixed(0)}%</span>
+                              <span style={{ fontSize: 12, color: "#ef4444", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.C / b.total) * 100).toFixed(0)}%</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ display: "flex", gap: 16, marginTop: 8, flexWrap: "wrap" }}>
-                        {grades.map(g => (
-                          <div key={g.key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                            <span style={{ width: 10, height: 10, borderRadius: 3, background: g.color, flexShrink: 0, display: "inline-block" }} />
-                            <span style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>{g.label}</span>
-                            <span style={{ fontSize: 12, color: "#94a3b8" }}>{g.count.toLocaleString()} ({((g.count / total) * 100).toFixed(1)}%)</span>
+                    )}
+                  </div>
+
+                  {/* Card 2: Top violations */}
+                  {insights.top_violations && insights.top_violations.length > 0 && (
+                    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 12 }}>Most common violations</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {insights.top_violations.map((v) => (
+                          <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                            <span style={{
+                              flexShrink: 0, fontSize: 10, fontWeight: 700, marginTop: 1,
+                              padding: "2px 7px", borderRadius: 999,
+                              background: v.critical ? "#fef2f2" : "#f8fafc",
+                              color: v.critical ? "#dc2626" : "#64748b",
+                              border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
+                              whiteSpace: "nowrap",
+                            }}>
+                              {v.critical ? "Critical" : "Not Critical"}
+                            </span>
+                            <span style={{ flex: 1, fontSize: 13, color: "#334155", minWidth: 0, lineHeight: 1.5 }}>{v.description}</span>
+                            <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                              {v.restaurant_count.toLocaleString()}
+                              <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400, marginLeft: 3 }}>restaurants</span>
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  );
-                })()}
-
-                {insights.borough_stats && insights.borough_stats.length > 0 && (
-                  <div style={{ marginTop: 20 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
-                      By borough
-                    </div>
-                    <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                      {/* header */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8" }} />
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>Avg pts</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", textAlign: "center" }}>A</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textAlign: "center" }}>B</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textAlign: "center" }}>C</span>
-                      </div>
-                      {insights.borough_stats.map(b => (
-                        <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
-                          <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
-                          <span style={{ fontSize: 12, color: "#16a34a", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.A / b.total) * 100).toFixed(0)}%</span>
-                          <span style={{ fontSize: 12, color: "#f59e0b", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.B / b.total) * 100).toFixed(0)}%</span>
-                          <span style={{ fontSize: 12, color: "#ef4444", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.C / b.total) * 100).toFixed(0)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {insights.top_violations && insights.top_violations.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
-                      Most common violations · latest inspection per restaurant
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {insights.top_violations.map((v) => (
-                        <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          <span style={{
-                            flexShrink: 0, fontSize: 10, fontWeight: 700,
-                            padding: "2px 7px", borderRadius: 999,
-                            background: v.critical ? "#fef2f2" : "#f8fafc",
-                            color: v.critical ? "#dc2626" : "#64748b",
-                            border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
-                            whiteSpace: "nowrap",
-                          }}>
-                            {v.critical ? "Critical" : "Not Critical"}
-                          </span>
-                          <span style={{ flex: 1, fontSize: 13, color: "#334155", minWidth: 0 }}>{v.description}</span>
-                          <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                            {v.restaurant_count.toLocaleString()}
-                            <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400, marginLeft: 3 }}>restaurants</span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
 
