@@ -26,6 +26,7 @@ type ScoreResp = {
   longitude?: number | null;
   score_history?: [string, number][];
   last_violations?: LastViolation[];
+  suggested_camis?: { camis: string; name: string; last_inspection_date: string | null }[];
 };
 type NbHit = {
   camis: string; name: string; address: string; boro: string; cuisine: string;
@@ -812,14 +813,21 @@ export default function Home() {
                         if (!score.last_inspection_date) return null;
                         const [y, m, d] = score.last_inspection_date.slice(0, 10).split("-").map(Number);
                         const days = Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / 86400000);
-                        if (days > 30) return null;
-                        return (
+                        if (days <= 30) return (
                           <span style={{
                             fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
                             background: "#f0fdf4", color: "#15803d",
                             border: "1px solid #bbf7d0",
                           }}>Recently inspected</span>
                         );
+                        if (days >= 730) return (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: "#fffbeb", color: "#92400e",
+                            border: "1px solid #fde68a",
+                          }}>Data may be stale</span>
+                        );
+                        return null;
                       })()}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -863,6 +871,22 @@ export default function Home() {
                     {score.predicted_points != null && (
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>
                         Predicted next: <strong style={{ color: "#0f172a" }}>{score.predicted_points} pts</strong>
+                      </div>
+                    )}
+                    {score.suggested_camis && score.suggested_camis.length > 0 && (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>
+                          Newer record found at this address — ownership may have changed:
+                        </div>
+                        {score.suggested_camis.map(s => (
+                          <button key={s.camis} onClick={() => selectHit({ camis: s.camis, name: s.name, address: "", boro: "" })}
+                            style={{ display: "block", width: "100%", textAlign: "left", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "7px 10px", marginBottom: 4, cursor: "pointer" }}>
+                            <span style={{ fontWeight: 600, fontSize: 12, color: "#0f172a" }}>{s.name}</span>
+                            {s.last_inspection_date && (
+                              <span style={{ fontSize: 11, color: "#78716c", marginLeft: 6 }}>Last inspected {formatDate(s.last_inspection_date)}</span>
+                            )}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
