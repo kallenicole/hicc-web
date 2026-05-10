@@ -29,7 +29,7 @@ type NbHit = {
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
 type TopViolation = { code: string; description: string; critical: boolean; restaurant_count: number };
-type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number }; score_trend?: number | null };
+type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number }; score_trend?: number | null; critical_rate?: number | null; top_cuisine?: string | null };
 type NycInsights = {
   total_restaurants: number;
   grade_counts: { A: number; B: number; C: number; ungraded: number };
@@ -1089,7 +1089,19 @@ export default function Home() {
                               : "—";
                             return (
                               <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 58px 64px 44px 44px 44px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
+                                <div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</div>
+                                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, display: "flex", gap: 8 }}>
+                                    {b.critical_rate != null && (
+                                      <span style={{ color: b.critical_rate > 40 ? "#ef4444" : b.critical_rate > 25 ? "#f59e0b" : "#64748b" }}>
+                                        {b.critical_rate}% critical
+                                      </span>
+                                    )}
+                                    {b.top_cuisine && (
+                                      <span>· {toTitleCase(b.top_cuisine)}</span>
+                                    )}
+                                  </div>
+                                </div>
                                 <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: trendColor, textAlign: "center" }}
                                   title={improving ? "Avg score improved vs last year" : worsening ? "Avg score worsened vs last year" : "Roughly flat vs last year"}>
