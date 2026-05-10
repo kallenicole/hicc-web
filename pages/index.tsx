@@ -1080,8 +1080,8 @@ export default function Home() {
                           </div>
                           {insights.borough_stats.map(b => {
                             const trend = b.score_trend;
-                            const improving = trend != null && trend < -0.2;
-                            const worsening = trend != null && trend > 0.2;
+                            const improving = trend != null && trend < 0;
+                            const worsening = trend != null && trend > 0;
                             const trendColor = improving ? "#16a34a" : worsening ? "#ef4444" : "#94a3b8";
                             const trendArrow = improving ? "↓" : worsening ? "↑" : "→";
                             const trendLabel = trend != null
