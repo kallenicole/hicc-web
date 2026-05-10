@@ -1093,7 +1093,7 @@ export default function Home() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {insights.top_violations.map((v) => (
-                        <div key={v.code} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                           <span style={{
                             flexShrink: 0, fontSize: 10, fontWeight: 700,
                             padding: "2px 7px", borderRadius: 999,
