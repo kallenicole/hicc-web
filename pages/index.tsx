@@ -1101,11 +1101,11 @@ export default function Home() {
                             <span style={{
                               flexShrink: 0, alignSelf: "flex-start",
                               fontSize: 10, fontWeight: 700,
-                              padding: "2px 7px", borderRadius: 999,
+                              width: 76, textAlign: "center",
+                              padding: "2px 0", borderRadius: 999,
                               background: v.critical ? "#fef2f2" : "#f8fafc",
                               color: v.critical ? "#dc2626" : "#64748b",
                               border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
-                              whiteSpace: "nowrap",
                             }}>
                               {v.critical ? "Critical" : "Not Critical"}
                             </span>
