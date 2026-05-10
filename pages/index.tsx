@@ -29,7 +29,7 @@ type NbHit = {
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
 };
 type TopViolation = { code: string; description: string; critical: boolean; restaurant_count: number };
-type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number } };
+type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number }; score_trend?: number | null };
 type NycInsights = {
   total_restaurants: number;
   grade_counts: { A: number; B: number; C: number; ungraded: number };
@@ -1070,22 +1070,37 @@ export default function Home() {
                       <div style={{ marginTop: 16 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>By borough</div>
                         <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 58px 64px 44px 44px 44px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
                             <span />
                             <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>Avg pts</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>vs last yr</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", textAlign: "center" }}>A</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: "#f59e0b", textAlign: "center" }}>B</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", textAlign: "center" }}>C</span>
                           </div>
-                          {insights.borough_stats.map(b => (
-                            <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 52px 52px 52px 52px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
-                              <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
-                              <span style={{ fontSize: 12, color: "#16a34a", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.A / b.total) * 100).toFixed(0)}%</span>
-                              <span style={{ fontSize: 12, color: "#f59e0b", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.B / b.total) * 100).toFixed(0)}%</span>
-                              <span style={{ fontSize: 12, color: "#ef4444", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.C / b.total) * 100).toFixed(0)}%</span>
-                            </div>
-                          ))}
+                          {insights.borough_stats.map(b => {
+                            const trend = b.score_trend;
+                            const improving = trend != null && trend < -0.2;
+                            const worsening = trend != null && trend > 0.2;
+                            const trendColor = improving ? "#16a34a" : worsening ? "#ef4444" : "#94a3b8";
+                            const trendArrow = improving ? "↓" : worsening ? "↑" : "→";
+                            const trendLabel = trend != null
+                              ? `${trendArrow} ${Math.abs(trend).toFixed(1)}`
+                              : "—";
+                            return (
+                              <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 58px 64px 44px 44px 44px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</span>
+                                <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: trendColor, textAlign: "center" }}
+                                  title={improving ? "Avg score improved vs last year" : worsening ? "Avg score worsened vs last year" : "Roughly flat vs last year"}>
+                                  {trendLabel}
+                                </span>
+                                <span style={{ fontSize: 12, color: "#16a34a", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.A / b.total) * 100).toFixed(0)}%</span>
+                                <span style={{ fontSize: 12, color: "#f59e0b", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.B / b.total) * 100).toFixed(0)}%</span>
+                                <span style={{ fontSize: 12, color: "#ef4444", textAlign: "center", fontWeight: 500 }}>{((b.grade_counts.C / b.total) * 100).toFixed(0)}%</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
