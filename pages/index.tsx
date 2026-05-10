@@ -926,12 +926,12 @@ export default function Home() {
                       {score.last_violations.map((v) => (
                         <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                           <span style={{
-                            flexShrink: 0, marginTop: 1,
-                            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999,
+                            flexShrink: 0, alignSelf: "flex-start",
+                            fontSize: 10, fontWeight: 700,
+                            width: 76, textAlign: "center", padding: "2px 0", borderRadius: 999,
                             background: v.critical ? "#fef2f2" : "#f8fafc",
                             color: v.critical ? "#dc2626" : "#64748b",
                             border: `1px solid ${v.critical ? "#fecaca" : "#e2e8f0"}`,
-                            whiteSpace: "nowrap",
                           }}>
                             {v.critical ? "Critical" : "Not Critical"}
                           </span>
@@ -1091,16 +1091,11 @@ export default function Home() {
                               <div key={b.boro} style={{ display: "grid", gridTemplateColumns: "1fr 58px 64px 44px 44px 44px", background: "#fff", padding: "8px 12px", gap: 4, alignItems: "center" }}>
                                 <div>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{b.boro}</div>
-                                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, display: "flex", gap: 8 }}>
-                                    {b.critical_rate != null && (
-                                      <span style={{ color: b.critical_rate > 40 ? "#ef4444" : b.critical_rate > 25 ? "#f59e0b" : "#64748b" }}>
-                                        {b.critical_rate}% critical
-                                      </span>
-                                    )}
-                                    {b.top_cuisine && (
-                                      <span>· {toTitleCase(b.top_cuisine)}</span>
-                                    )}
-                                  </div>
+                                  {b.critical_rate != null && (
+                                    <div style={{ fontSize: 11, marginTop: 2, color: b.critical_rate > 40 ? "#ef4444" : b.critical_rate > 25 ? "#f59e0b" : "#94a3b8" }}>
+                                      {b.critical_rate}% critical violations
+                                    </div>
+                                  )}
                                 </div>
                                 <span style={{ fontSize: 13, color: "#334155", textAlign: "center" }}>{b.avg_score ?? "—"}</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: trendColor, textAlign: "center" }}
