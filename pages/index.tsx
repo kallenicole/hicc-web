@@ -17,7 +17,10 @@ type ScoreResp = {
   last_points?: number | null;
   last_grade?: string | null;
   rat_index?: number | null;
+  pest_index?: number | null;
   rat311_cnt_180d_k1?: number | null;
+  mouse311_cnt_180d_k1?: number | null;
+  pest311_cnt_180d_k1?: number | null;
   ratinsp_fail_365d_k1?: number | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -855,50 +858,64 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Rat pressure */}
-                <div className="rat-bar" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 24 }}>🐀</span>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Local Rat Pressure</div>
-                      <div style={{ fontWeight: 700, fontSize: 18, color: ratPressureColor(score.rat_index) }}>
-                        {ratPressureLabel(score.rat_index)}
+                {/* Pest pressure */}
+                <div className="rat-bar" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 24 }}>🐀</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Local Pest Pressure</div>
+                        <div style={{ fontWeight: 700, fontSize: 18, color: ratPressureColor(score.pest_index ?? score.rat_index) }}>
+                          {ratPressureLabel(score.pest_index ?? score.rat_index)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="rat-stats" style={{ display: "flex", gap: 24, marginLeft: "auto", flexWrap: "wrap" }}>
-                    {[
-                      {
-                        label: "Rat Index",
-                        value: score.rat_index != null ? score.rat_index.toFixed(2) : "—",
-                        desc: "0–1 composite score",
-                        tooltip: "A 0–1 score combining nearby 311 complaints and city rat inspection failures, normalized by quantile across all NYC restaurants.\nScale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8",
-                      },
-                      {
-                        label: "311 Complaints",
-                        value: score.rat311_cnt_180d_k1 ?? "—",
-                        desc: "Last 180 days nearby",
-                        tooltip: "311 is NYC's non-emergency city services hotline. This counts rodent complaints filed within ≈150–200m of this restaurant over the last 180 days.",
-                      },
-                      {
-                        label: "Rat Inspection Fails",
-                        value: score.ratinsp_fail_365d_k1 ?? "—",
-                        desc: "Last 365 days nearby",
-                        tooltip: "Number of failed DOHMH (NYC Dept. of Health) rat inspections at properties within ≈150–200m of this restaurant over the last 365 days.",
-                      },
-                    ].map(stat => (
-                      <div key={stat.label} style={{ textAlign: "center" }}>
-                        <div style={{ fontWeight: 700, fontSize: 20, color: "#0f172a" }}>{stat.value}</div>
-                        <Tooltip label={stat.tooltip}>
-                          <div style={{ cursor: "default" }}>
-                            <div style={{ fontSize: 12, color: "#334155", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                              {stat.label} <InfoIcon style={{ color: "#cbd5e1" }} />
+                    <div className="rat-stats" style={{ display: "flex", gap: 24, marginLeft: "auto", flexWrap: "wrap" }}>
+                      {[
+                        {
+                          label: "Pest Index",
+                          value: (score.pest_index ?? score.rat_index) != null ? (score.pest_index ?? score.rat_index)!.toFixed(2) : "—",
+                          desc: "0–1 composite score",
+                          tooltip: "A 0–1 composite of nearby rat sightings, mouse sightings, indoor pest/cockroach complaints, and city rat inspection failures — normalized across all NYC restaurants.\nScale: Low <0.2 · Moderate 0.2–0.4 · Elevated 0.4–0.6 · High 0.6–0.8 · Very High ≥0.8",
+                        },
+                        {
+                          label: "Rat Complaints",
+                          value: score.rat311_cnt_180d_k1 ?? "—",
+                          desc: "Last 180 days nearby",
+                          tooltip: "311 rodent sighting complaints (excluding mice) filed within ≈150–200m of this restaurant over the last 180 days.",
+                        },
+                        {
+                          label: "Mouse Complaints",
+                          value: score.mouse311_cnt_180d_k1 ?? "—",
+                          desc: "Last 180 days nearby",
+                          tooltip: "311 mouse sighting complaints filed within ≈150–200m of this restaurant over the last 180 days.",
+                        },
+                        {
+                          label: "Pest/Roach Complaints",
+                          value: score.pest311_cnt_180d_k1 ?? "—",
+                          desc: "Last 180 days nearby",
+                          tooltip: "311 indoor pest complaints (cockroaches, insects) filed by residents within ≈150–200m over the last 180 days. Filed under 'Unsanitary Condition — Pests'.",
+                        },
+                        {
+                          label: "Rat Inspection Fails",
+                          value: score.ratinsp_fail_365d_k1 ?? "—",
+                          desc: "Last 365 days nearby",
+                          tooltip: "Number of failed DOHMH rat inspections at properties within ≈150–200m of this restaurant over the last 365 days.",
+                        },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ textAlign: "center" }}>
+                          <div style={{ fontWeight: 700, fontSize: 20, color: "#0f172a" }}>{stat.value}</div>
+                          <Tooltip label={stat.tooltip}>
+                            <div style={{ cursor: "default" }}>
+                              <div style={{ fontSize: 12, color: "#334155", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                                {stat.label} <InfoIcon style={{ color: "#cbd5e1" }} />
+                              </div>
+                              <div style={{ fontSize: 11, color: "#94a3b8" }}>{stat.desc}</div>
                             </div>
-                            <div style={{ fontSize: 11, color: "#94a3b8" }}>{stat.desc}</div>
-                          </div>
-                        </Tooltip>
-                      </div>
-                    ))}
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
