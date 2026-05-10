@@ -1099,7 +1099,8 @@ export default function Home() {
                         {insights.top_violations.map((v) => (
                           <div key={v.code} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                             <span style={{
-                              flexShrink: 0, fontSize: 10, fontWeight: 700, marginTop: 1,
+                              flexShrink: 0, alignSelf: "flex-start",
+                              fontSize: 10, fontWeight: 700,
                               padding: "2px 7px", borderRadius: 999,
                               background: v.critical ? "#fef2f2" : "#f8fafc",
                               color: v.critical ? "#dc2626" : "#64748b",
