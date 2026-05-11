@@ -1119,7 +1119,8 @@ export default function Home() {
                     {insights.borough_stats && insights.borough_stats.length > 0 && (
                       <div style={{ marginTop: 16 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>By borough</div>
-                        <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                        <div style={{ overflowX: "auto" }}>
+                        <div style={{ display: "grid", gap: 1, background: "#f1f5f9", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", minWidth: 320 }}>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 58px 64px 44px 44px 44px", background: "#f8fafc", padding: "6px 12px", gap: 4 }}>
                             <span />
                             <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "center" }}>Avg pts</span>
@@ -1158,6 +1159,7 @@ export default function Home() {
                               </div>
                             );
                           })}
+                        </div>
                         </div>
                       </div>
                     )}

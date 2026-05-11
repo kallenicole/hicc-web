@@ -8,8 +8,6 @@ html, body, #__next {
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  max-width: 100%;
 }
 
 a { color: inherit; text-decoration: none; }
