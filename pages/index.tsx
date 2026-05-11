@@ -265,9 +265,6 @@ function getErrorMessage(err: unknown): string {
 function isAbortError(err: unknown) {
   return typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError";
 }
-function dedent(s: string) {
-  return s.replace(/^[ \t]+/gm, "").trim();
-}
 function leafletSrcDoc(lat: number, lon: number) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -478,8 +475,7 @@ export default function Home() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
     return () => { if (timer.current) clearTimeout(timer.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -503,8 +499,7 @@ export default function Home() {
       setQ("");
       setHits([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, router.query]);
+  }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!API_BASE) return;

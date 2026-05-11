@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { Map as LeafletMap } from "leaflet";
 
 type Restaurant = {
   camis: string;
@@ -24,7 +25,7 @@ const GRADE_COLOR: Record<string, string> = {
 
 export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -84,8 +85,8 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
         bounds.push([r.latitude, r.longitude]);
       });
 
-      // Wire up the popup button callback
-      (window as any)._mapSelect = (camis: string) => {
+      // Wire up the popup button callback via a typed window extension
+      (window as Record<string, unknown>)._mapSelect = (camis: string) => {
         const r = restaurants.find((x) => x.camis === camis);
         if (r) onSelect(r);
       };
@@ -96,7 +97,7 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
     });
 
     return () => {
-      (window as any)._mapSelect = undefined;
+      (window as Record<string, unknown>)._mapSelect = undefined;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
