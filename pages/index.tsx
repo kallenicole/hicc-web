@@ -2,6 +2,9 @@ import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import dynamic from "next/dynamic";
+
+const NeighborhoodMap = dynamic(() => import("../components/NeighborhoodMap"), { ssr: false });
 
 type Hit = { camis: string; name: string; address: string; boro: string };
 type ViolationProb = { code: string; probability: number; label: string };
@@ -31,6 +34,7 @@ type ScoreResp = {
 type NbHit = {
   camis: string; name: string; address: string; boro: string; cuisine: string;
   last_grade: string | null; last_score: number | null; last_date: string | null; days_since: number | null;
+  latitude: number | null; longitude: number | null;
 };
 type TopViolation = { code: string; description: string; critical: boolean; restaurant_count: number };
 type BoroughStat = { boro: string; total: number; avg_score: number | null; grade_counts: { A: number; B: number; C: number }; score_trend?: number | null; critical_rate?: number | null; top_cuisine?: string | null };
@@ -1231,6 +1235,14 @@ export default function Home() {
 
               {nbErr && <div style={{ marginTop: 8, color: "#ef4444", fontSize: 13 }}>Error: {nbErr}</div>}
 
+              {nbResults.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <NeighborhoodMap
+                    restaurants={nbResults}
+                    onSelect={(r) => selectHit({ camis: r.camis, name: r.name, address: r.address, boro: r.boro })}
+                  />
+                </div>
+              )}
               {nbResults.length > 0 && (() => {
                 const cuisines = Array.from(new Set(nbResults.map(r => r.cuisine).filter(Boolean))).sort() as string[];
                 const filtered = nbCuisineFilter ? nbResults.filter(r => r.cuisine === nbCuisineFilter) : nbResults;
