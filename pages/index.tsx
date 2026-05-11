@@ -475,7 +475,7 @@ export default function Home() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => runSearch(q, { allowFallback: true }), 350);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -499,7 +499,7 @@ export default function Home() {
       setQ("");
       setHits([]);
     }
-  }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query]);
 
   useEffect(() => {
     if (!API_BASE) return;

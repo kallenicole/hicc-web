@@ -83,7 +83,7 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
         bounds.push([r.latitude, r.longitude]);
       });
 
-      (window as Record<string, unknown>)._mapSelect = (camis: string) => {
+      (window as unknown as Record<string, unknown>)._mapSelect = (camis: string) => {
         const r = restaurants.find((x) => x.camis === camis);
         if (r) onSelect(r);
       };
@@ -94,7 +94,7 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
     });
 
     return () => {
-      (window as Record<string, unknown>)._mapSelect = undefined;
+      (window as unknown as Record<string, unknown>)._mapSelect = undefined;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
