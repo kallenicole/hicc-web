@@ -530,7 +530,7 @@ export default function Home() {
     if (zip.length !== 5 || !/^\d{5}$/.test(zip)) return;
     setNbLoading(true); setNbErr(null); setNbResults([]); setNbQueriedZip(zip); setNbCuisineFilter(null);
     try {
-      const r = await fetch(`${API_BASE}/neighborhood?zip=${zip}`);
+      const r = await fetch(`${API_BASE}/neighborhood?zip=${zip}&limit=500`);
       if (!r.ok) { const t = await r.text(); throw new Error(`${r.status}: ${t}`); }
       setNbResults(await r.json() as NbHit[]);
     } catch (err) { setNbErr(getErrorMessage(err)); }
