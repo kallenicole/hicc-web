@@ -1084,7 +1084,7 @@ export default function Home() {
 
                 <div style={{ display: "grid", gap: 12 }}>
                   {/* Card 1: Grade distribution + borough breakdown */}
-                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)", minWidth: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 12 }}>Grade distribution</div>
                     {(() => {
                       const total = insights.total_restaurants;
@@ -1345,7 +1345,7 @@ export default function Home() {
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#e2e8f0"; }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3 }}>{ex.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", lineHeight: 1.3, minWidth: 0 }}>{ex.name}</div>
                     <span style={{
                       fontSize: 10, padding: "2px 7px", borderRadius: 999, flexShrink: 0,
                       background: "#f1f5f9", color: "#475569",
