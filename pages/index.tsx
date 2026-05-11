@@ -1270,7 +1270,7 @@ export default function Home() {
                     <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
                       {filtered.length} restaurant{filtered.length !== 1 ? "s" : ""} in {nbZip}{nbCuisineFilter ? ` · ${toTitleCase(nbCuisineFilter)}` : ""} — sorted by highest inspection score
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 480, overflowY: "auto", paddingRight: 2 }}>
                       {filtered.map((nb, i) => {
                         const g = inferGrade(nb.last_grade, nb.last_score);
                         return (
