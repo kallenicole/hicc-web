@@ -30,9 +30,7 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Dynamically import Leaflet (client-only)
     import("leaflet").then((L) => {
-      // Avoid double-init on hot reload
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -85,7 +83,6 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
         bounds.push([r.latitude, r.longitude]);
       });
 
-      // Wire up the popup button callback via a typed window extension
       (window as Record<string, unknown>)._mapSelect = (camis: string) => {
         const r = restaurants.find((x) => x.camis === camis);
         if (r) onSelect(r);
@@ -103,8 +100,7 @@ export default function NeighborhoodMap({ restaurants, onSelect }: Props) {
         mapRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurants]);
+  }, [restaurants, onSelect]);
 
   return (
     <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
