@@ -593,7 +593,7 @@ export default function Home() {
 
       {/* Header */}
       <header style={{ background: "#0f172a", borderBottom: "1px solid #1e293b" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="site-header-inner" style={{ maxWidth: 860, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={handleHome} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             <DineSafeLogo />
             <div style={{ textAlign: "left" }}>
@@ -1270,7 +1270,7 @@ export default function Home() {
                     <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
                       {filtered.length} restaurant{filtered.length !== 1 ? "s" : ""} in {nbZip}{nbCuisineFilter ? ` · ${toTitleCase(nbCuisineFilter)}` : ""} — sorted by highest inspection score
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 480, overflowY: "auto", paddingRight: 2 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 480, overflowY: "auto", overflowX: "hidden", paddingRight: 4 }}>
                       {filtered.map((nb, i) => {
                         const g = inferGrade(nb.last_grade, nb.last_score);
                         return (
