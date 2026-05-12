@@ -401,6 +401,7 @@ export default function Home() {
   const [searchErr, setSearchErr] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [selected, setSelected] = useState<Hit | null>(null);
+  const [backLabel, setBackLabel] = useState<string | null>(null);
   const [score, setScore] = useState<ScoreResp | null>(null);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreErr, setScoreErr] = useState<string | null>(null);
@@ -425,6 +426,8 @@ export default function Home() {
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const suppressSearch = useRef(false);
   const suppressRouteEffect = useRef(false);
+  const savedScrollY = useRef(0);
+  const restoreScroll = useRef(false);
 
   const deepLink = useMemo(() => {
     if (!selected) return "";
@@ -502,6 +505,13 @@ export default function Home() {
   }, [router.isReady, router.query]);
 
   useEffect(() => {
+    if (!selected && restoreScroll.current) {
+      restoreScroll.current = false;
+      window.scrollTo(0, savedScrollY.current);
+    }
+  }, [selected]);
+
+  useEffect(() => {
     if (!API_BASE) return;
     fetch(`${API_BASE}/metadata`).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.last_refreshed) setDataRefreshed(d.last_refreshed);
@@ -537,7 +547,9 @@ export default function Home() {
     finally { setNbLoading(false); }
   };
 
-  const selectHit = (h: Hit) => {
+  const selectHit = (h: Hit, label?: string) => {
+    savedScrollY.current = window.scrollY;
+    setBackLabel(label ?? null);
     suppressSearch.current = true;
     suppressRouteEffect.current = true;
     setSelected(h); setQ(toTitleCase(h.name)); setDropdownOpen(false); setHits([]);
@@ -553,8 +565,10 @@ export default function Home() {
     inputRef.current?.focus();
   };
   const handleHome = () => {
+    restoreScroll.current = true;
     suppressRouteEffect.current = true;
     setQ(""); setHits([]); setSelected(null); setScore(null); setScoreErr(null);
+    setBackLabel(null);
     setDropdownOpen(false); setHighlighted(-1);
     router.replace({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   };
@@ -567,7 +581,7 @@ export default function Home() {
     else if (e.key === "Enter") {
       e.preventDefault();
       const h = hits[highlighted >= 0 ? highlighted : 0];
-      if (h) selectHit(h);
+      if (h) selectHit(h, "Search results");
     }
   };
 
@@ -688,7 +702,7 @@ export default function Home() {
                   <button
                     key={h.camis}
                     ref={el => { itemRefs.current[h.camis] = el; }}
-                    onClick={() => selectHit(h)}
+                    onClick={() => selectHit(h, "Search results")}
                     style={{
                       display: "flex", width: "100%", textAlign: "left",
                       padding: "12px 16px", alignItems: "center", gap: 12,
@@ -724,6 +738,18 @@ export default function Home() {
         {/* Score card */}
         {(selected || scoreLoading) && (
           <div>
+            {backLabel && (
+              <button onClick={handleHome} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "none", border: "none", cursor: "pointer", padding: "4px 0",
+                fontSize: 13, fontWeight: 600, color: "#3b82f6", marginBottom: 12,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                  <polyline points="15,18 9,12 15,6" />
+                </svg>
+                {backLabel}
+              </button>
+            )}
             {/* Restaurant header */}
             {selected && (
               <div className="restaurant-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
@@ -1236,7 +1262,7 @@ export default function Home() {
                 <div style={{ marginTop: 16 }}>
                   <NeighborhoodMap
                     restaurants={nbResults}
-                    onSelect={(r) => selectHit({ camis: r.camis, name: r.name, address: r.address, boro: r.boro })}
+                    onSelect={(r) => selectHit({ camis: r.camis, name: r.name, address: r.address, boro: r.boro }, nbQueriedZip ? `ZIP ${nbQueriedZip}` : "Map")}
                   />
                 </div>
               )}
@@ -1278,7 +1304,7 @@ export default function Home() {
                         return (
                           <button
                             key={nb.camis}
-                            onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro })}
+                            onClick={() => selectHit({ camis: nb.camis, name: nb.name, address: nb.address, boro: nb.boro }, nbQueriedZip ? `ZIP ${nbQueriedZip}` : undefined)}
                             style={{
                               display: "flex", alignItems: "center", gap: 12, width: "100%",
                               padding: "12px 14px", background: "#fff",
@@ -1333,7 +1359,7 @@ export default function Home() {
               {examples.map(ex => (
                 <button
                   key={ex.camis}
-                  onClick={() => selectHit(ex)}
+                  onClick={() => selectHit(ex, "Explore examples")}
                   style={{
                     display: "flex", flexDirection: "column", textAlign: "left",
                     padding: "16px 18px", background: "#fff",
