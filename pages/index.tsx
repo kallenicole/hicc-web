@@ -590,7 +590,7 @@ export default function Home() {
   const pageTitle = selected ? `${toTitleCase(selected.name)} · DineSafe NYC` : "DineSafe NYC — NYC Restaurant Health Inspection Risk";
   const pageDesc = selected
     ? `Health inspection risk score for ${toTitleCase(selected.name)} in ${selected.boro || "NYC"}. See last inspection grade, violation history, and predicted next inspection risk.`
-    : "Predict any NYC restaurant's next health inspection risk. See violation history, grade trends, and local rodent pressure — updated nightly from NYC Open Data.";
+    : "Predict any NYC restaurant's next health inspection risk. See violation history, grade trends, and local rodent pressure — updated monthly from NYC Open Data.";
 
   return (
     <>
@@ -630,7 +630,7 @@ export default function Home() {
               fontSize: 12, fontWeight: 600, color: "#15803d", letterSpacing: 0.3,
             }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a", display: "inline-block" }} />
-              Updated nightly from NYC Open Data
+              Updated monthly from NYC Open Data
             </div>
             <h1 style={{
               fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 800,
@@ -1080,7 +1080,7 @@ export default function Home() {
             <div className="grid-stats" style={{ marginBottom: 40 }}>
               {[
                 { value: "26,000+", label: "Restaurants tracked" },
-                { value: "Nightly", label: "Data refresh" },
+                { value: "Monthly", label: "Data refresh" },
                 { value: "5 signals", label: "Per prediction" },
                 { value: "Free", label: "No account needed" },
               ].map((s, i) => (
@@ -1401,7 +1401,7 @@ export default function Home() {
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: "#cbd5e1" }}>
               Data: <a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>NYC Open Data</a>
-              {dataRefreshed ? ` · Updated ${formatDate(dataRefreshed)}` : " · Updated nightly"}
+              {dataRefreshed ? ` · Updated ${formatDate(dataRefreshed)}` : " · Updated monthly"}
             </span>
             <span style={{ fontSize: 12, color: "#cbd5e1" }}>
               Maps: <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8" }}>Leaflet</a>
