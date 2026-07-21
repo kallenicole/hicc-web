@@ -553,6 +553,7 @@ export default function Home() {
     suppressSearch.current = true;
     suppressRouteEffect.current = true;
     setSelected(h); setQ(toTitleCase(h.name)); setDropdownOpen(false); setHits([]);
+    window.scrollTo(0, 0);
     if (timer.current) clearTimeout(timer.current);
     if (abortRef.current) abortRef.current.abort();
     runScore(h.camis);
